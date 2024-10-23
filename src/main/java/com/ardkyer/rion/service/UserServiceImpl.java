@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private AmazonS3 amazonS3Client;
 
-    @Value("ardkyerspring1")
+    @Value("ardkyerspring2")
     private String bucketName;
 
     @Autowired
