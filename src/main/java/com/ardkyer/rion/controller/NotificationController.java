@@ -11,6 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
@@ -58,5 +59,11 @@ public class NotificationController {
         return "redirect:/videos/detail/" + videoId;
     }
 
+    @PostMapping("/delete-read")
+    public String deleteReadNotifications(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+        List<Notification> readNotifications = notificationRepository.findByUserAndIsReadTrue(principalDetails.getUser());
+        notificationRepository.deleteAll(readNotifications);
+        return "redirect:/notifications";
+    }
 }
 

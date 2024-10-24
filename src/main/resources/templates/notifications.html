@@ -96,6 +96,15 @@
             background-color: #1976D2;
         }
 
+        .delete-read-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
     </style>
 </head>
 <body>
@@ -106,6 +115,10 @@
     </div>
 
     <h1>알림 목록</h1>
+    <!-- 읽은 알림 삭제 버튼 추가 -->
+    <form th:action="@{/notifications/delete-read}" method="post">
+        <button class="delete-read-btn" type="submit">읽은 알림 삭제</button>
+    </form>
     <ul>
         <li th:each="notification : ${notifications}">
             <!-- 읽은 알림과 읽지 않은 알림 구분 -->
