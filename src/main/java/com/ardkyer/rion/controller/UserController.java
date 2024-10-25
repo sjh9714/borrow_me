@@ -1,5 +1,8 @@
+//UserController.java
 package com.ardkyer.rion.controller;
 
+import com.ardkyer.rion.dto.EmailVerificationDto;
+import com.ardkyer.rion.dto.UserRegistrationDto;
 import com.ardkyer.rion.entity.*;
 import com.ardkyer.rion.service.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +11,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,27 +27,36 @@ import java.util.Optional;
 
 @Controller
 @Tag(name = "User", description = "User management API")
+@RequiredArgsConstructor
+@Slf4j
 public class UserController {
     private final UserService userService;
     private final VideoService videoService;
     private final CommentService commentService;
     private final FollowService followService;
 
-    @Autowired
-    public UserController(UserService userService, VideoService videoService, CommentService commentService, FollowService followService) {
-        this.userService = userService;
-        this.videoService = videoService;
-        this.commentService = commentService;
-        this.followService = followService;
-    }
-
     @PostMapping("/api/users/register")
     @ResponseBody
-    @Operation(summary = "Register a new user", description = "Creates a new user account")
-    @ApiResponse(responseCode = "201", description = "Successfully registered user", content = @Content(schema = @Schema(implementation = User.class)))
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        User registeredUser = userService.registerUser(user);
-        return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDto registrationDto) {
+        log.info("Received registration request - username: {}, email: {}",
+                registrationDto.getUsername(), registrationDto.getEmail());
+
+        try {
+            // 이메일 인증 확인
+            boolean isVerified = userService.isEmailVerified(registrationDto.getEmail());
+            log.info("Email verification status for {}: {}", registrationDto.getEmail(), isVerified);
+
+            if (!isVerified) {
+                return ResponseEntity.badRequest().body("이메일 인증이 필요합니다.");
+            }
+
+            User registeredUser = userService.registerNewUser(registrationDto);
+            log.info("User registered successfully - id: {}", registeredUser.getId());
+            return ResponseEntity.ok(registeredUser);
+        } catch (Exception e) {
+            log.error("Registration failed: ", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping("/api/users/{id}")
@@ -136,4 +150,41 @@ public class UserController {
         model.addAttribute("userVideos", userVideos);
         return "user-videos";
     }
+
+    @PostMapping("/api/auth/send-verification")
+    @ResponseBody
+    @Operation(summary = "Send verification email", description = "Sends verification code to user's email")
+    @ApiResponse(responseCode = "200", description = "Successfully sent verification code")
+    @ApiResponse(responseCode = "400", description = "Invalid email address")
+    public ResponseEntity<String> sendVerificationEmail(@RequestParam String email) {
+        try {
+            userService.sendVerificationEmail(email);
+            return ResponseEntity.ok("인증 코드가 발송되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("인증 코드 발송 중 오류가 발생했습니다.");
+        }
+    }
+
+    @PostMapping("/api/auth/verify-email")
+    @ResponseBody
+    @Operation(summary = "Verify email", description = "Verifies user's email with provided code")
+    @ApiResponse(responseCode = "200", description = "Successfully verified email")
+    @ApiResponse(responseCode = "400", description = "Invalid verification code")
+    public ResponseEntity<String> verifyEmail(@RequestBody EmailVerificationDto dto) {
+        try {
+            boolean verified = userService.verifyEmail(dto.getEmail(), dto.getVerificationCode());
+            if (verified) {
+                return ResponseEntity.ok("이메일이 인증되었습니다.");
+            } else {
+                return ResponseEntity.badRequest().body("잘못된 인증 코드입니다.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("이메일 인증 중 오류가 발생했습니다.");
+        }
+    }
+
 }

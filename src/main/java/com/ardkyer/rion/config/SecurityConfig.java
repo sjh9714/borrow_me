@@ -1,3 +1,4 @@
+// SecurityConfig.java
 package com.ardkyer.rion.config;
 
 import com.ardkyer.rion.service.PrincipalOauth2UserService;
@@ -48,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/v2/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
                         .requestMatchers("/", "/home", "/register", "/login", "/profile/**","/reels/**", "/videos/**","/img/**", "/css/**", "/js/**").permitAll()
                         .requestMatchers("/api/follows/**").hasRole("USER")
+                        .requestMatchers("/api/users/register").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

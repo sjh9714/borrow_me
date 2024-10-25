@@ -1,3 +1,4 @@
+//User.java
 package com.ardkyer.rion.entity;
 
 import jakarta.persistence.*;
@@ -29,6 +30,9 @@ public class User implements Serializable {
     @Column()
     private String passwordHash;
 
+    @Transient // DB에 저장되지 않는 임시 필드
+    private String password;
+
     @Column(name = "profile_picture")
     private String profilePicture;
 
@@ -40,6 +44,15 @@ public class User implements Serializable {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    @Column(name = "verification_token_expiry")
+    private LocalDateTime verificationTokenExpiry;
 
     @ElementCollection(fetch = FetchType.EAGER)
     private Set<String> roles = new HashSet<>();

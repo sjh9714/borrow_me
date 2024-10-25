@@ -1,5 +1,7 @@
+//UserService.java
 package com.ardkyer.rion.service;
 
+import com.ardkyer.rion.dto.UserRegistrationDto;
 import com.ardkyer.rion.entity.*;
 import com.ardkyer.rion.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,4 +24,9 @@ public interface UserService {
     void deleteUser(Long id);
     List<User> getTopUsersByFollowerCount(int limit);
     String updateUserAvatar(String username, MultipartFile file) throws IOException;
+
+    void sendVerificationEmail(String email);
+    boolean verifyEmail(String email, String code);
+    User registerNewUser(UserRegistrationDto registrationDto);
+    boolean isEmailVerified(String email);
 }
