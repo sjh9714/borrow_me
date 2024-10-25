@@ -108,7 +108,7 @@ public class UserController {
         User currentUser = userService.findByUsername(auth.getName());
 
         List<Video> userVideos = videoService.getVideosByUser(currentUser);
-        List<Video> likedVideos = videoService.getLikedVideosByUser(currentUser);
+        List<Video> reservedVideos = videoService.getReservedVideosByUser(currentUser);
         List<Comment> userComments = commentService.getCommentsByUser(currentUser);
 
         model.addAttribute("user", currentUser);
@@ -117,7 +117,7 @@ public class UserController {
         model.addAttribute("followers", followService.getFollowers(currentUser));
         model.addAttribute("following", followService.getFollowing(currentUser));
         model.addAttribute("userVideos", userVideos);
-        model.addAttribute("likedVideos", likedVideos);
+        model.addAttribute("reservedVideos", reservedVideos);
         model.addAttribute("userComments", userComments);
 
         return "profile";

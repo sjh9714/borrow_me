@@ -39,19 +39,6 @@ public class CommentController {
         this.templateEngine = templateEngine;
     }
 
-    @PostMapping("/{commentId}/like")
-    @Operation(summary = "Toggle like on a comment", description = "Likes or unlikes a comment for the authenticated user")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully toggled like"),
-            @ApiResponse(responseCode = "404", description = "Comment not found")
-    })
-    public ResponseEntity<Map<String, Object>> toggleCommentLike(
-            @Parameter(description = "ID of the comment to like/unlike", required = true) @PathVariable Long commentId,
-            Authentication authentication) {
-        User user = userService.findByUsername(authentication.getName());
-        return ResponseEntity.ok(commentService.toggleLike(commentId, user));
-    }
-
     @GetMapping("/{id}")
     @Operation(summary = "Get a comment by ID", description = "Returns a single comment")
     @ApiResponses(value = {
@@ -101,10 +88,19 @@ public class CommentController {
     })
     public ResponseEntity<Comment> updateComment(
             @Parameter(description = "ID of the comment to update", required = true) @PathVariable Long id,
-            @Parameter(description = "Updated comment object", required = true) @RequestBody Comment comment) {
-        if (!commentService.getCommentById(id).isPresent()) {
+            @Parameter(description = "Updated comment object", required = true) @RequestBody Comment comment,
+            Authentication authentication) {
+        Optional<Comment> existingComment = commentService.getCommentById(id);
+        if (!existingComment.isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+
+        // 자신의 댓글만 수정 가능
+        User currentUser = userService.findByUsername(authentication.getName());
+        if (!existingComment.get().getUser().getId().equals(currentUser.getId())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
         comment.setId(id);
         Comment updatedComment = commentService.updateComment(comment);
         return new ResponseEntity<>(updatedComment, HttpStatus.OK);
@@ -117,24 +113,27 @@ public class CommentController {
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     public ResponseEntity<Void> deleteComment(
-            @Parameter(description = "ID of the comment to delete", required = true) @PathVariable Long id) {
-        if (!commentService.getCommentById(id).isPresent()) {
+            @Parameter(description = "ID of the comment to delete", required = true) @PathVariable Long id,
+            Authentication authentication) {
+        Optional<Comment> comment = commentService.getCommentById(id);
+        if (!comment.isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+
+        // 자신의 댓글만 삭제 가능
+        User currentUser = userService.findByUsername(authentication.getName());
+        if (!comment.get().getUser().getId().equals(currentUser.getId())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
         commentService.deleteComment(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping
     @Operation(summary = "Add a new comment", description = "Creates a new comment for a video")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully added comment"),
-            @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Video not found"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
     public ResponseEntity<String> addComment(
-            @Parameter(description = "Comment details", required = true) @RequestBody Map<String, String> payload,
+            @RequestBody Map<String, String> payload,
             Authentication authentication) {
         try {
             User user = userService.findByUsername(authentication.getName());
@@ -146,16 +145,15 @@ public class CommentController {
             comment.setUser(user);
             comment.setVideo(video);
 
-            Comment addedComment = commentService.addComment(comment);
+            Comment savedComment = commentService.addComment(comment);
 
             Context context = new Context();
-            context.setVariable("comment", addedComment);
+            context.setVariable("comment", savedComment);
             context.setVariable("currentUser", user);
 
             String commentHtml = templateEngine.process("fragments/comment", context);
             return ResponseEntity.ok(commentHtml);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error processing comment: " + e.getMessage());
         }
@@ -165,7 +163,6 @@ public class CommentController {
         Context context = new Context();
         context.setVariable("comment", comment);
         context.setVariable("currentUser", currentUser);
-
         return templateEngine.process("fragments/comment :: commentItem", context);
     }
 }

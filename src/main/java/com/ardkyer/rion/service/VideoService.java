@@ -12,22 +12,32 @@ import java.util.Set;
 
 @Service
 public interface VideoService {
-    Video uploadVideo(Video video, MultipartFile file , Set<String> hashtagNames) throws IOException;
-    S3Object getVideoFile(String fileName);
+    // 기본 CRUD 작업
+    Video uploadVideo(Video video, MultipartFile file, Set<String> hashtagNames) throws IOException;
     Optional<Video> getVideoById(Long id);
-    List<Video> getVideosByUser(User user);
-    List<Video> getLikedVideosByUser(User user);
-    List<Video> getTopVideos();
     Video updateVideo(Video video);
     void deleteVideo(Long id);
+
+    // 파일 처리
+    S3Object getVideoFile(String fileName);
+
+    // 조회 메서드
     List<Video> getAllVideos();
-    void incrementViewCount(Long videoId);
-    List<Video> getAllVideosWithComments();
-    List<Video> getAllVideosWithSortedComments();
-    void saveHashtagsFromDescription(String description);
+    List<Video> getVideosByUser(User user);
+    List<Video> getRecentVideosByUser(User user, int limit);
+    List<Video> getRandomRecentVideos(int count);
+
+    // 예약 관련 메서드
+    List<Video> getReservedVideosByUser(User user);
+    boolean isAvailableForReservation(Long videoId, int quantity);
+    Video updateAvailableQuantity(Long videoId, int quantity);
+
+    // 검색 관련 메서드
     List<Video> searchVideos(String query);
     List<Video> searchVideosByHashtags(Set<String> hashtags);
-    List<Video> getAllVideosOrderByLikeCountDesc();
-    List<Video> getRandomRecentVideos(int count);
-    List<Video> getRecentVideosByUser(User user, int limit);
+    void saveHashtagsFromDescription(String description);
+
+    // 댓글 관련
+    List<Video> getAllVideosWithComments();
+    List<Video> getAllVideosWithSortedComments();
 }

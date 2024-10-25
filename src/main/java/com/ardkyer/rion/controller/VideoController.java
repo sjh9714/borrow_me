@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.ardkyer.rion.entity.Comment;
 import com.ardkyer.rion.entity.Video;
 import com.ardkyer.rion.entity.User;
+import com.ardkyer.rion.entity.Reservation;
 import com.ardkyer.rion.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,11 +25,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
+import java.util.*;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Controller
@@ -43,7 +41,7 @@ public class VideoController {
     private UserService userService;
 
     @Autowired
-    private LikeService likeService;
+    private ReservationService reservationService;
 
     @Autowired
     private CommentService commentService;
@@ -52,9 +50,9 @@ public class VideoController {
     private FollowService followService;
 
     @GetMapping
-    @Operation(summary = "List all videos", description = "Retrieves a list of all videos with comments, sorted by like count")
+    @Operation(summary = "List all items", description = "Retrieves a list of all items with comments")
     public String listVideos(Model model, Authentication authentication) {
-        List<Video> videos = videoService.getAllVideosOrderByLikeCountDesc();
+        List<Video> videos = videoService.getAllVideos();
         prepareVideosForDisplay(videos, authentication);
         model.addAttribute("videos", videos);
         model.addAttribute("currentUser", getCurrentUser(authentication));
@@ -62,8 +60,8 @@ public class VideoController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Watch a video", description = "Retrieves a specific video for watching")
-    public String watchVideo(@Parameter(description = "ID of the video to watch") @PathVariable Long id, Model model, Authentication authentication) {
+    @Operation(summary = "View item details", description = "Retrieves a specific item for viewing")
+    public String watchVideo(@Parameter(description = "ID of the item") @PathVariable Long id, Model model, Authentication authentication) {
         Optional<Video> videoOptional = videoService.getVideoById(id);
         if (videoOptional.isPresent()) {
             Video video = videoOptional.get();
@@ -76,12 +74,12 @@ public class VideoController {
     }
 
     @GetMapping("/file/{fileName:.+}")
-    @Operation(summary = "Serve video file", description = "Streams a video file")
+    @Operation(summary = "Serve image file", description = "Serves an image file")
     public ResponseEntity<InputStreamResource> serveFile(@Parameter(description = "Name of the file to serve") @PathVariable String fileName) {
         S3Object s3Object = videoService.getVideoFile(fileName);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(s3Object.getObjectMetadata().getContentType()));
+        headers.setContentType(MediaType.IMAGE_JPEG); // 이미지 타입으로 변경
         headers.setContentLength(s3Object.getObjectMetadata().getContentLength());
 
         return ResponseEntity.ok()
@@ -90,24 +88,33 @@ public class VideoController {
     }
 
     @GetMapping("/upload")
-    @Operation(summary = "Show upload form", description = "Displays the video upload form")
+    @Operation(summary = "Show upload form", description = "Displays the item upload form")
     public String showUploadForm() {
         return "uploadForm";
     }
 
     @PostMapping("/upload")
-    @Operation(summary = "Upload a video", description = "Uploads a new video")
+    @Operation(summary = "Upload an item", description = "Uploads a new item with image")
     public String handleFileUpload(@RequestParam("title") String title,
                                    @RequestParam("description") String description,
-                                   @RequestParam("video") MultipartFile file,
+                                   @RequestParam("image") MultipartFile file,
+                                   @RequestParam("totalQuantity") Integer totalQuantity,
                                    @RequestParam(value = "hashtags", required = false) String hashtags,
                                    Authentication authentication) throws IOException {
+        // 이미지 파일 타입 검증
+        if (!file.getContentType().startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files are allowed!");
+        }
+
         User currentUser = userService.findByUsername(authentication.getName());
 
         Video video = new Video();
         video.setTitle(title);
         video.setDescription(description);
         video.setUser(currentUser);
+        video.setTotalQuantity(totalQuantity);
+        video.setAvailableQuantity(totalQuantity);
+        video.setReservationStatus(Video.ReservationStatus.AVAILABLE);
 
         Set<String> hashtagSet = extractHashtags(description, hashtags);
 
@@ -116,28 +123,37 @@ public class VideoController {
         return "redirect:/videos";
     }
 
-    @GetMapping("/{id}/comments")
-    @Operation(summary = "Get video comments", description = "Retrieves comments for a specific video")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved comments", content = @Content(schema = @Schema(implementation = Page.class)))
-    public ResponseEntity<Page<Comment>> getVideoComments(
-            @Parameter(description = "ID of the video") @PathVariable Long id,
-            @Parameter(description = "Page number") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size) {
-        Video video = new Video();
-        video.setId(id);
-        Page<Comment> comments = commentService.getCommentsByVideo(video, PageRequest.of(page, size));
-        return ResponseEntity.ok(comments);
+    // 예약 관련 엔드포인트 추가
+    @PostMapping("/{id}/reserve")
+    @ResponseBody
+    public ResponseEntity<?> reserveItem(@PathVariable Long id,
+                                         @RequestParam Integer quantity,
+                                         Authentication authentication) {
+        User currentUser = userService.findByUsername(authentication.getName());
+        Video video = videoService.getVideoById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+
+        try {
+            Reservation reservation = reservationService.reserve(video, currentUser, quantity);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("reservationId", reservation.getId());
+            response.put("remainingQuantity", video.getAvailableQuantity());
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
-    @GetMapping("/{id}/top-comment")
-    @Operation(summary = "Get top comment", description = "Retrieves the top comment for a specific video")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved top comment", content = @Content(schema = @Schema(implementation = Comment.class)))
-    @ApiResponse(responseCode = "404", description = "No comments found for the video")
-    public ResponseEntity<Comment> getTopComment(@Parameter(description = "ID of the video") @PathVariable Long id) {
-        Video video = new Video();
-        video.setId(id);
-        Optional<Comment> topComment = commentService.getTopCommentForVideo(video);
-        return topComment.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    @PostMapping("/reservations/{id}/cancel")
+    @ResponseBody
+    public ResponseEntity<?> cancelReservation(@PathVariable Long id, Authentication authentication) {
+        try {
+            reservationService.cancelReservation(id);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/detail/{id}")
@@ -151,6 +167,10 @@ public class VideoController {
             if (authentication != null) {
                 User currentUser = userService.findByUsername(authentication.getName());
                 isFollowing = followService.isFollowing(currentUser, video.getUser());
+
+                // 현재 사용자의 예약 정보 추가
+                Optional<Reservation> userReservation = reservationService.getReservationByVideoAndUser(video, currentUser);
+                model.addAttribute("userReservation", userReservation.orElse(null));
             }
 
             model.addAttribute("video", video);
@@ -166,7 +186,6 @@ public class VideoController {
         User currentUser = getCurrentUser(authentication).orElse(null);
         for (Video video : videos) {
             if (currentUser != null) {
-                video.setLikedByCurrentUser(likeService.hasUserLikedVideo(currentUser, video));
                 video.setFollowedByCurrentUser(followService.isFollowing(currentUser, video.getUser()));
             }
         }
@@ -174,13 +193,7 @@ public class VideoController {
 
     private void prepareVideoForDisplay(Video video, Authentication authentication) {
         User currentUser = getCurrentUser(authentication).orElse(null);
-        prepareVideoForDisplay(video, currentUser);
-    }
-
-    private void prepareVideoForDisplay(Video video, User currentUser) {
-        video.setLikeCount(likeService.getLikeCountForVideo(video));
         if (currentUser != null) {
-            video.setLikedByCurrentUser(likeService.hasUserLikedVideo(currentUser, video));
             video.setFollowedByCurrentUser(followService.isFollowing(currentUser, video.getUser()));
         }
     }

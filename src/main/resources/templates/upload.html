@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rion - Upload Video</title>
+    <title>Rion - Upload Item</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -65,7 +65,7 @@
             visibility: hidden;
         }
         input[type="file"]::before {
-            content: 'Select Video File';
+            content: 'Select Image File';
             display: inline-block;
             background: #3897f0;
             border: none;
@@ -99,16 +99,29 @@
         .home-button:hover {
             background-color: #1877f2;
         }
+        .quantity-group {
+            margin-bottom: 15px;
+        }
+        .quantity-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #a8a8a8;
+        }
     </style>
 </head>
 <body>
 <a href="/home" class="home-button">Back to Home</a>
 <div class="container">
-    <h2>Upload Video</h2>
+    <h2>Upload Item</h2>
     <form action="/videos/upload" method="post" enctype="multipart/form-data">
         <input type="text" id="title" name="title" placeholder="Title" required>
         <textarea id="description" name="description" placeholder="Description"></textarea>
-        <input type="file" id="video" name="video" accept="video/*" required>
+        <div class="quantity-group">
+            <label for="totalQuantity">Total Quantity Available</label>
+            <input type="number" id="totalQuantity" name="totalQuantity" min="1" value="1" required>
+        </div>
+        <input type="file" id="image" name="image" accept="image/*" required>
+        <input type="text" id="hashtags" name="hashtags" placeholder="Hashtags (comma separated)">
         <button type="submit">Upload</button>
     </form>
 </div>

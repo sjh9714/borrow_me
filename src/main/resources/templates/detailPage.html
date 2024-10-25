@@ -1,161 +1,236 @@
-<!--detailPage.html-->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title th:text="${video.title}">Video Detail</title>
+    <title th:text="${video.title}">Item Detail</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #000;
-            color: #fff;
+            padding: 20px;
+            background-color: #121212;
+            color: #ffffff;
         }
+
         .container {
-            max-width: 935px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
+
         .video-detail {
-            display: flex;
-            background-color: #121212;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .video-container {
-            flex: 1;
-            max-width: 614px;
-        }
-        .video-container video {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        .video-info {
-            flex: 1;
-            padding: 20px;
-            max-width: 335px;
-        }
-        .video-title {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .video-user {
-            color: #a8a8a8;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        .like-button, .comment-like-button {
-            background-color: transparent;
-            color: #fff;
-            border: 1px solid #fff;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        .like-button:hover, .comment-like-button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .like-button.liked, .comment-like-button.liked {
-            background-color: #fff;
-            color: #000;
-        }
-        .like-button.liked:hover, .comment-like-button.liked:hover {
-            background-color: #e0e0e0;
-        }
-        .like-count {
-            margin-left: 10px;
-            font-size: 14px;
-            color: #a8a8a8;
-        }
-        .comment-section {
+            display: grid;
+            grid-template-columns: minmax(300px, 500px) 1fr;
+            gap: 40px;
+            background-color: #1c1c1c;
+            border-radius: 10px;
+            padding: 30px;
             margin-top: 20px;
         }
-        .comment {
-            border-bottom: 1px solid #262626;
-            padding: 10px 0;
+
+        .video-container {
+            width: 100%;
+            position: relative;
         }
+
+        .video-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-info {
+            padding: 0 20px;
+        }
+
+        .video-title {
+            font-size: 24px;
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        .video-user {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            color: #a8a8a8;
+            font-size: 16px;
+        }
+
+        .follow-button {
+            background-color: #3897f0;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-left: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .follow-button.following {
+            background-color: #262626;
+        }
+
+        .reservation-section {
+            background-color: #262626;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .quantity-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .status-available {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .status-reserved {
+            background-color: #FFC107;
+            color: black;
+        }
+
+        .status-out-of-stock {
+            background-color: #F44336;
+            color: white;
+        }
+
+        .reservation-form {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .quantity-input {
+            width: 100px;
+            padding: 10px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background-color: #363636;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .reserve-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .reserve-button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+
+        .reserve-button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+
+        .login-prompt {
+            text-align: center;
+            padding: 15px;
+            background-color: #363636;
+            border-radius: 4px;
+        }
+
+        .login-prompt a {
+            color: #3897f0;
+            text-decoration: none;
+        }
+
+        .comment-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #363636;
+        }
+
+        .comment {
+            background-color: #262626;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
         .comment-form {
             margin-top: 20px;
         }
+
         .comment-input {
             width: 100%;
-            padding: 10px;
-            background-color: #262626;
-            border: none;
-            color: #fff;
-            border-radius: 3px;
-        }
-        .comment-submit {
-            background-color: #fff;
-            color: #000;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: all 0.3s ease;
-        }
-        .comment-submit:hover {
-            background-color: #e0e0e0;
-        }
-        .follow-button {
-            background-color: #0095f6;
-            color: #fff;
-            border: none;
-            padding: 8px 20px;
+            padding: 12px;
+            border: 1px solid #404040;
             border-radius: 4px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-left: 10px;
-        }
-        .follow-button:hover {
-            background-color: #0074cc;
-        }
-        .follow-button.following {
-            background-color: #333;
+            background-color: #363636;
             color: #fff;
+            margin-bottom: 10px;
         }
-        .home-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+
+        .comment-submit {
+            padding: 8px 16px;
             background-color: #3897f0;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background-color 0.3s;
-            z-index: 1000;
         }
+
+        .home-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3897f0;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+
         .home-button:hover {
             background-color: #1877f2;
+        }
+
+        @media (max-width: 768px) {
+            .video-detail {
+                grid-template-columns: 1fr;
+            }
+
+            .video-info {
+                padding: 0;
+            }
         }
     </style>
 </head>
 <body>
-<a href="/videos" class="home-button">Back to Videos</a>
+<a href="/videos" class="home-button">Back to Items</a>
 <div class="container">
     <div class="video-detail">
         <div class="video-container">
-            <video th:id="'video-' + ${video.id}" controls>
-                <source th:src="@{'/videos/file/' + ${video.videoUrl}}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
+            <img th:src="@{'/videos/file/' + ${video.imageUrl}}" alt="Item Image">
         </div>
         <div class="video-info">
-            <h1 class="video-title" th:text="${video.title}">Video Title</h1>
+            <h1 class="video-title" th:text="${video.title}">Item Title</h1>
             <p class="video-user">
-                <span th:text="${'Uploaded by ' + video.user.username}">Uploaded by User</span>
+                <span th:text="${'Posted by ' + video.user.username}">Posted by User</span>
                 <button th:if="${currentUser.isPresent() and video.user.id != currentUser.get().id}"
                         th:attr="data-user-id=${video.user.id}"
                         th:onclick="'toggleFollow(' + ${video.user.id} + ')'"
@@ -164,10 +239,38 @@
                     Follow
                 </button>
             </p>
-            <button th:id="'like-button-' + ${video.id}" class="like-button" th:onclick="'likeVideo(' + ${video.id} + ')'">
-                <span th:text="${video.likedByCurrentUser ? 'Unlike' : 'Like'}">Like</span>
-            </button>
-            <span th:id="'like-count-' + ${video.id}" class="like-count" th:text="${video.likeCount} + ' likes'"></span>
+
+            <div class="reservation-section">
+                <div class="quantity-info">
+                    <span>Available Quantity:
+                        <strong th:text="${video.availableQuantity + '/' + video.totalQuantity}">0/0</strong>
+                    </span>
+                    <span class="status-badge"
+                          th:classappend="'status-' + ${#strings.toLowerCase(video.reservationStatus)}"
+                          th:text="${video.reservationStatus}">
+                        Status
+                    </span>
+                </div>
+
+                <div th:if="${video.isAvailableForReservation() and currentUser.isPresent()}">
+                    <form class="reservation-form" th:onsubmit="'event.preventDefault(); reserve(' + ${video.id} + ')'">
+                        <input type="number"
+                               class="quantity-input"
+                               min="1"
+                               th:max="${video.availableQuantity}"
+                               value="1"
+                               id="reservationQuantity">
+                        <button type="submit"
+                                class="reserve-button"
+                                th:disabled="${!video.isAvailableForReservation()}">
+                            Reserve Now
+                        </button>
+                    </form>
+                </div>
+                <div th:if="${!currentUser.isPresent()}" class="login-prompt">
+                    Please <a href="/login">login</a> to make a reservation.
+                </div>
+            </div>
 
             <div class="comment-section">
                 <h4>Comments</h4>
@@ -175,13 +278,8 @@
                     <div th:each="comment : ${video.comments}" th:fragment="commentItem" class="comment" th:data-comment-id="${comment?.id}">
                         <p th:text="${comment?.content}">Comment content</p>
                         <small th:text="${'By ' + comment?.user?.username}">By Username</small>
-                        <button th:onclick="'likeComment(' + ${comment?.id} + ')'" class="like-button comment-like-button">
-                            <span th:text="${currentUser != null and currentUser.isPresent() and comment != null and comment.isLikedByCurrentUser(currentUser.get()) ? 'Unlike' : 'Like'}">Like</span>
-                        </button>
-                        <span class="like-count comment-like-count" th:text="${comment?.likeCount} + ' likes'"></span>
                     </div>
                 </div>
-                <button th:onclick="'loadMoreComments(' + ${video.id} + ')'" class="show-more-button">Load more comments</button>
                 <form th:id="'comment-form-' + ${video.id}" class="comment-form">
                     <input type="text" th:id="'comment-input-' + ${video.id}" class="comment-input" placeholder="Add a comment...">
                     <button type="submit" class="comment-submit">Post</button>
@@ -192,122 +290,69 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.querySelector('.search-input');
+    function reserve(itemId) {
+        const quantity = document.getElementById('reservationQuantity').value;
 
-        const searchForm = document.querySelector('.search-form');
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const query = searchInput.value;
-            window.location.href = '/search/results?query=' + encodeURIComponent(query);
-        });
-
-        const videos = document.querySelectorAll('video');
-
-        const observerOptions = {
-            root: null,
-            rootMargin: '0px',
-            threshold: 0.5
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.play();
-                } else {
-                    entry.target.pause();
-                }
-            });
-        }, observerOptions);
-
-        videos.forEach(video => {
-            observer.observe(video);
-
-            video.addEventListener('click', function() {
-                if (this.paused) {
-                    this.play();
-                } else {
-                    this.pause();
-                }
-            });
-        });
-    });
-
-    function likeVideo(videoId) {
-        fetch('/api/likes', {
+        fetch('/videos/' + itemId + '/reserve', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ videoId: videoId })
+            body: JSON.stringify({ quantity: quantity })
         })
             .then(response => response.json())
             .then(data => {
-                const likeButton = document.getElementById('like-button-' + videoId);
-                const likeCount = document.getElementById('like-count-' + videoId);
-                if (data.liked) {
-                    likeButton.textContent = 'Unlike';
-                    likeButton.classList.add('liked');
+                if (data.success) {
+                    alert('Reservation successful!');
+                    location.reload();
                 } else {
-                    likeButton.textContent = 'Like';
-                    likeButton.classList.remove('liked');
+                    alert(data.error || 'Failed to make reservation');
                 }
-                likeCount.textContent = data.likeCount + ' likes';
             })
             .catch(error => {
                 console.error('Error:', error);
+                alert('An error occurred while making the reservation');
             });
     }
 
-    function loadTopComment(videoId) {
-        fetch(`/videos/${videoId}/top-comment`)
-            .then(response => response.json())
-            .then(comment => {
-                const topCommentElement = document.getElementById(`top-comment-${videoId}`);
-                topCommentElement.innerHTML = `
-                    <div class="comment">
-                        <p>${comment.content}</p>
-                        <small>By ${comment.user.username}</small>
-                        <button onclick="likeComment(${comment.id})" class="comment-like-button">Like</button>
-                        <span>${comment.likeCount} likes</span>
-                    </div>
-                `;
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function loadComments(videoId, page = 0) {
-        fetch(`/api/comments/video/${videoId}?page=${page}&size=10&sort=likeCount,desc&sort=createdAt,desc`)
+    function toggleFollow(userId) {
+        fetch('/api/follows?followedId=' + userId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
             .then(response => response.json())
             .then(data => {
-                const commentsElement = document.getElementById(`comments-${videoId}`);
-                data.content.forEach(comment => {
-                    commentsElement.innerHTML += `
-                    <div class="comment">
-                        <p>${comment.content}</p>
-                        <small>By ${comment.user.username}</small>
-                        <button onclick="likeComment(${comment.id})" class="comment-like-button">
-                            ${comment.likedByCurrentUser ? 'Unlike' : 'Like'}
-                        </button>
-                        <span class="comment-like-count">${comment.likeCount} likes</span>
-                    </div>
-                `;
-                });
-                if (!data.last) {
-                    commentsElement.innerHTML += `
-                    <button onclick="loadComments(${videoId}, ${page + 1})" class="show-more-button">Load more</button>
-                `;
+                if (data.success) {
+                    updateAllFollowButtons(userId, data.isFollowing);
+                } else {
+                    alert('Failed to follow/unfollow: ' + data.message);
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
     }
 
-    // Load top comments for all videos when the page loads
+    function updateAllFollowButtons(userId, isFollowing) {
+        const followButtons = document.querySelectorAll('.follow-button[data-user-id="' + userId + '"]');
+        followButtons.forEach(button => {
+            button.textContent = isFollowing ? 'Following' : 'Follow';
+            button.classList.toggle('following', isFollowing);
+        });
+    }
+
+    // Add comment functionality
     document.addEventListener('DOMContentLoaded', function() {
-        const videos = document.querySelectorAll('.video-item');
-        videos.forEach(video => {
-            const videoId = video.querySelector('video').id.split('-')[1];
-            loadTopComment(videoId);
+        const commentForms = document.querySelectorAll('.comment-form');
+        commentForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const videoId = this.id.split('-')[2];
+                addComment(videoId);
+            });
         });
     });
 
@@ -332,105 +377,6 @@
                 .catch(error => console.error('Error:', error));
         }
     }
-
-    // 각 댓글 폼에 이벤트 리스너 추가
-    document.addEventListener('DOMContentLoaded', function() {
-        const commentForms = document.querySelectorAll('.comment-form');
-        commentForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const videoId = this.id.split('-')[2];
-                addComment(videoId);
-            });
-        });
-    });
-
-    function likeComment(commentId) {
-        fetch(`/api/comments/${commentId}/like`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-                if (commentElement) {
-                    const likeButton = commentElement.querySelector('.comment-like-button');
-                    const likeCount = commentElement.querySelector('.comment-like-count');
-
-                    if (likeButton && likeCount) {
-                        likeButton.textContent = data.liked ? 'Unlike' : 'Like';
-                        likeCount.textContent = `${data.likeCount} likes`;
-
-                        // 버튼 스타일 변경
-                        if (data.liked) {
-                            likeButton.classList.add('liked');
-                        } else {
-                            likeButton.classList.remove('liked');
-                        }
-                    }
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function loadMoreComments(videoId) {
-        const commentsElement = document.getElementById(`comments-${videoId}`);
-        const commentCount = commentsElement.children.length;
-
-        fetch(`/api/comments/video/${videoId}?page=${Math.floor(commentCount / 5)}&size=5&sort=likeCount,desc&sort=createdAt,desc`)
-            .then(response => response.json())
-            .then(data => {
-                data.content.forEach(comment => {
-                    commentsElement.innerHTML += `
-                    <div class="comment" data-comment-id="${comment.id}">
-                        <p>${comment.content}</p>
-                        <small>By ${comment.user.username}</small>
-                        <button onclick="likeComment(${comment.id})" class="comment-like-button">
-                            ${comment.likedByCurrentUser ? 'Unlike' : 'Like'}
-                        </button>
-                        <span class="comment-like-count">${comment.likeCount} likes</span>
-                    </div>
-                `;
-                });
-                if (data.last) {
-                    document.querySelector(`button[onclick="loadMoreComments(${videoId})"]`).style.display = 'none';
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function toggleFollow(userId) {
-        fetch('/api/follows?followedId=' + userId, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateAllFollowButtons(userId, data.isFollowing);
-                } else {
-                    console.error('Follow action failed:', data.message);
-                    alert('Failed to follow/unfollow: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-            });
-    }
-
-    function updateAllFollowButtons(userId, isFollowing) {
-        const followButtons = document.querySelectorAll('.follow-button[data-user-id="' + userId + '"]');
-        followButtons.forEach(button => {
-            button.textContent = isFollowing ? 'Following' : 'Follow';
-            button.classList.toggle('following', isFollowing);
-        });
-    }
-
 </script>
 </body>
 </html>

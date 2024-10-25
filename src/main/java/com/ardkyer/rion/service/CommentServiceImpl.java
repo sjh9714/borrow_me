@@ -10,21 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
-    private final CommentLikeRepository commentLikeRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
 
     @Autowired
-    public CommentServiceImpl(CommentRepository commentRepository, CommentLikeRepository commentLikeRepository) {
+    public CommentServiceImpl(CommentRepository commentRepository) {
         this.commentRepository = commentRepository;
-        this.commentLikeRepository = commentLikeRepository;
     }
 
     @Override
@@ -33,18 +29,19 @@ public class CommentServiceImpl implements CommentService {
         Comment savedComment = commentRepository.save(comment);
 
         if (savedComment.getVideo() != null) {
-            System.out.println("비디오 ID: " + savedComment.getVideo().getId());  // 비디오 ID 로그 출력
+            System.out.println("비디오 ID: " + savedComment.getVideo().getId());
         } else {
             System.out.println("비디오가 null입니다.");
         }
 
+        // 자신의 게시물이 아닐 경우에만 알림 생성
         if (!savedComment.getVideo().getUser().equals(savedComment.getUser())) {
             Notification notification = new Notification();
             notification.setUser(savedComment.getVideo().getUser());
             notification.setPostTitle(savedComment.getVideo().getTitle());
             notification.setCommenterName(savedComment.getUser().getUsername());
             notification.setCommentContent(savedComment.getContent());
-            notification.setVideoId(savedComment.getVideo().getId());  // 비디오 ID 설정
+            notification.setVideoId(savedComment.getVideo().getId());
 
             notificationRepository.save(notification);
         }
@@ -59,7 +56,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public Page<Comment> getCommentsByVideo(Video video, Pageable pageable) {
-        return commentRepository.findByVideoOrderByLikeCountDescCreatedAtDesc(video, pageable);
+        return commentRepository.findByVideoOrderByCreatedAtDesc(video, pageable);
     }
 
     @Override
@@ -80,40 +77,12 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public Optional<Comment> getTopCommentForVideo(Video video) {
-        return commentRepository.findTopByVideoOrderByLikeCountDesc(video);
+    public Optional<Comment> getRecentCommentForVideo(Video video) {
+        return commentRepository.findFirstByVideoOrderByCreatedAtDesc(video);
     }
 
     @Override
     public List<Comment> getCommentsByUser(User user) {
         return commentRepository.findByUser(user);
     }
-
-    @Override
-    @Transactional
-    public Map<String, Object> toggleLike(Long commentId, User user) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
-
-        boolean liked = false;
-        CommentLike commentLike = commentLikeRepository.findByCommentAndUser(comment, user);
-        if (commentLike == null) {
-            commentLike = new CommentLike();
-            commentLike.setComment(comment);
-            commentLike.setUser(user);
-            commentLikeRepository.save(commentLike);
-            comment.setLikeCount(comment.getLikeCount() + 1);
-            liked = true;
-        } else {
-            commentLikeRepository.delete(commentLike);
-            comment.setLikeCount(comment.getLikeCount() - 1);
-        }
-        commentRepository.save(comment);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("liked", liked);
-        result.put("likeCount", comment.getLikeCount());
-        return result;
-    }
-
 }

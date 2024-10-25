@@ -1,252 +1,245 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>My Profile</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
             background-color: #121212;
             color: #ffffff;
+            margin: 0;
+            padding: 20px;
         }
-        .container {
-            max-width: 800px;
+
+        .profile-container {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
         }
-        h1, h2, h4 {
-            color: #ffffff;
-            font-weight: 300;
-        }
-        .profile-info {
-            background-color: #1c1c1c;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .follow-list {
+
+        .user-info {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .follow-column {
-            width: 48%;
-            background-color: #1c1c1c;
-            padding: 15px;
-            border-radius: 10px;
-        }
-        .user-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .user-list li {
-            margin-bottom: 10px;
-        }
-        .user-list a {
-            color: #3897f0;
-            text-decoration: none;
-        }
-        .user-list a:hover {
-            text-decoration: underline;
-        }
-        .video-item {
+            align-items: center;
+            margin-bottom: 40px;
             background-color: #1c1c1c;
             padding: 20px;
             border-radius: 10px;
-            margin-bottom: 20px;
         }
-        .video-item video {
-            width: 100%;
-            max-width: 600px;
-            height: auto;
-            margin-bottom: 10px;
-        }
-        .unlike-button, .delete-button {
-            background-color: #3897f0;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .unlike-button:hover, .delete-button:hover {
-            background-color: #1877f2;
-        }
-        .comment {
-            background-color: #2c2c2c;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        .home-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #3897f0;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background-color 0.3s;
-            z-index: 1000;
-        }
-        .home-button:hover {
-            background-color: #1877f2;
-        }
-        .avatar-container {
-            width: 150px;
-            height: 170px; /* 높이를 늘려 버튼이 완전히 보이도록 함 */
-            margin: 0 auto 20px;
-            position: relative;
-        }
-        .avatar-image {
+
+        .profile-image {
             width: 150px;
             height: 150px;
             border-radius: 50%;
+            margin-right: 30px;
             object-fit: cover;
         }
-        .avatar-upload {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: rgba(0,0,0,0.7);
-            color: white;
-            padding: 5px;
-            text-align: center;
-            cursor: pointer;
-            border-radius: 0 0 75px 75px; /* 하단 모서리만 둥글게 처리 */
+
+        .user-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
         }
-        .avatar-upload input[type="file"] {
-            display: none;
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #a8a8a8;
+        }
+
+        .content-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .video-item {
+            background-color: #1c1c1c;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+
+        .video-info {
+            padding: 15px;
+        }
+
+        .video-title {
+            margin: 0;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .video-metadata {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #a8a8a8;
+        }
+
+        .reservation-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .status-available {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .status-reserved {
+            background-color: #FFC107;
+            color: black;
+        }
+
+        .status-out-of-stock {
+            background-color: #F44336;
+            color: white;
+        }
+
+        .quantity-info {
+            font-size: 14px;
+            color: #a8a8a8;
+            margin-top: 5px;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
         }
     </style>
 </head>
 <body>
-<a href="/home" class="home-button">Back to Home</a>
-<div class="container">
-    <div class="profile-info">
-        <h1>My Profile</h1>
-        <div class="avatar-container">
-            <img th:src="${user.avatarUrl != null ? user.avatarUrl : '/images/default-avatar.png'}" alt="Profile Avatar" class="avatar-image">
-            <label class="avatar-upload">
-                <input type="file" id="avatar-input" accept="image/*">
-                Change Avatar
-            </label>
-        </div>
-        <p>Username: <span th:text="${user.username}">username</span></p>
-        <p>Email: <span th:text="${user.email}">email@example.com</span></p>
-    </div>
+<div class="profile-container">
+    <div class="user-info">
+        <img th:if="${user.profilePicture}" th:src="${user.profilePicture}" alt="Profile Picture" class="profile-image">
+        <img th:unless="${user.profilePicture}" src="/images/default-profile.png" alt="Default Profile" class="profile-image">
 
-    <div class="follow-list">
-        <div class="follow-column">
-            <h2>Followers (<span th:text="${followerCount}">0</span>)</h2>
-            <ul class="user-list">
-                <li th:each="follower : ${followers}">
-                    <a th:href="@{/user/{username}/videos(username=${follower.username})}" th:text="${follower.username}">Follower Username</a>
-                </li>
-            </ul>
-        </div>
-        <div class="follow-column">
-            <h2>Following (<span th:text="${followingCount}">0</span>)</h2>
-            <ul class="user-list">
-                <li th:each="following : ${following}">
-                    <a th:href="@{/user/{username}/videos(username=${following.username})}" th:text="${following.username}">Following Username</a>
-                </li>
-            </ul>
+        <div>
+            <h1 th:text="${user.username}">Username</h1>
+            <div class="user-stats">
+                <div class="stat">
+                    <div class="stat-number" th:text="${userVideos.size()}">0</div>
+                    <div class="stat-label">Posts</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" th:text="${followerCount}">0</div>
+                    <div class="stat-label">Followers</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" th:text="${followingCount}">0</div>
+                    <div class="stat-label">Following</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <h2>My Videos</h2>
-    <div th:if="${userVideos.empty}">
-        <p>You haven't uploaded any videos yet.</p>
-    </div>
-    <div th:each="video : ${userVideos}" class="video-item">
-        <h3 th:text="${video.title}">Video Title</h3>
-        <p th:text="${video.description}">Video Description</p>
-        <video controls>
-            <source th:src="@{'/videos/file/' + ${video.videoUrl}}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <form th:action="@{/profile/delete-video/{id}(id=${video.id})}" method="post">
-            <button type="submit" class="delete-button">Delete</button>
-        </form>
-        <h4>Comments on this video:</h4>
-        <div th:each="comment : ${video.comments}" class="comment">
-            <p th:text="${comment.content}">Comment content</p>
-            <small th:text="${'By ' + comment.user.username}">By Username</small>
+    <!-- Posted Items Section -->
+    <div class="content-section">
+        <h2 class="section-title">Posted Items</h2>
+        <div class="video-grid">
+            <div th:each="video : ${userVideos}" class="video-item">
+                <a th:href="@{'/videos/detail/' + ${video.id}}">
+                    <img th:src="@{'/videos/file/' + ${video.imageUrl}}" alt="Item Image" class="video-thumbnail">
+                </a>
+                <div class="video-info">
+                    <h3 class="video-title" th:text="${video.title}">Item Title</h3>
+                    <div class="video-metadata">
+                        <span th:text="${#temporals.format(video.createdAt, 'yyyy-MM-dd')}">Date</span>
+                    </div>
+                    <div class="quantity-info">
+                        Available: <span th:text="${video.availableQuantity + '/' + video.totalQuantity}">0/0</span>
+                    </div>
+                    <div class="reservation-status"
+                         th:classappend="'status-' + ${#strings.toLowerCase(video.reservationStatus)}"
+                         th:text="${video.reservationStatus}">
+                        Status
+                    </div>
+                    <form th:action="@{'/profile/delete-video/' + ${video.id}}" method="post">
+                        <button type="submit" class="delete-button">Delete</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
-    <h2>Liked Videos</h2>
-    <div th:if="${likedVideos.empty}">
-        <p>You haven't liked any videos yet.</p>
-    </div>
-    <div th:each="video : ${likedVideos}" th:id="'liked-video-' + ${video.id}" class="video-item">
-        <h3 th:text="${video.title}">Video Title</h3>
-        <p th:text="${video.description}">Video Description</p>
-        <video controls>
-            <source th:src="@{'/videos/file/' + ${video.videoUrl}}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <button class="unlike-button" th:onclick="'unlikeVideo(' + ${video.id} + ')'">Unlike</button>
+    <!-- Reserved Items Section -->
+    <div class="content-section">
+        <h2 class="section-title">Reserved Items</h2>
+        <div class="video-grid">
+            <div th:each="video : ${reservedVideos}" class="video-item">
+                <a th:href="@{'/videos/detail/' + ${video.id}}">
+                    <img th:src="@{'/videos/file/' + ${video.imageUrl}}" alt="Item Image" class="video-thumbnail">
+                </a>
+                <div class="video-info">
+                    <h3 class="video-title" th:text="${video.title}">Item Title</h3>
+                    <div class="video-metadata">
+                        <span th:text="${#temporals.format(video.createdAt, 'yyyy-MM-dd')}">Date</span>
+                    </div>
+                    <div class="quantity-info" th:if="${video.reservations}">
+                        Reserved Quantity:
+                        <span th:text="${video.reservations.?[user.id == #authentication.principal.id][0].quantity}">0</span>
+                    </div>
+                    <div class="reservation-status"
+                         th:if="${video.reservations}"
+                         th:with="reservation=${video.reservations.?[user.id == #authentication.principal.id][0]}"
+                         th:text="${reservation?.status}">
+                        PENDING
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <h2>My Comments</h2>
-    <div th:if="${userComments == null || userComments.empty}">
-        <p>You haven't made any comments yet.</p>
-    </div>
-    <div th:each="comment : ${userComments}" class="comment">
-        <p th:text="${comment.content}">Comment content</p>
-        <small th:text="${'On video: ' + comment.video.title}">On video: Video Title</small>
+    <!-- Comments Section -->
+    <div class="content-section">
+        <h2 class="section-title">Comments</h2>
+        <div class="comments-grid">
+            <div th:each="comment : ${userComments}" class="comment-item">
+                <p th:text="${comment.content}">Comment content</p>
+                <div class="video-metadata">
+                    <span>On video: </span>
+                    <a th:href="@{'/videos/detail/' + ${comment.video.id}}"
+                       th:text="${comment.video.title}">Video title</a>
+                    <span th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd')}">Date</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
-<script th:inline="javascript">
-    function unlikeVideo(videoId) {
-        fetch('/api/likes/' + videoId, {
-            method: 'DELETE'
-        })
-            .then(response => {
-                if (response.ok) {
-                    document.getElementById('liked-video-' + videoId).remove();
-                }
-            });
-    }
-
-    document.getElementById('avatar-input').addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const formData = new FormData();
-            formData.append('avatar', file);
-
-            fetch('/api/user/avatar', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.querySelector('.avatar-image').src = data.avatarUrl;
-                    } else {
-                        alert('Failed to upload avatar: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while uploading the avatar.');
-                });
-        }
-    });
-</script>
-
 </body>
 </html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Video Gallery</title>
+    <title>Item Gallery</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -11,23 +11,38 @@
             background-color: #121212;
             color: #ffffff;
         }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
+            margin-top: 20px;
         }
+
         .video-item {
-            border: 1px solid #2c2c2c;
             background-color: #1c1c1c;
-            border-radius: 3px;
+            border-radius: 8px;
             overflow: hidden;
+            transition: transform 0.2s;
         }
+
+        .video-item:hover {
+            transform: translateY(-5px);
+        }
+
         .video-container {
             position: relative;
             width: 100%;
-            padding-top: 100%;
+            padding-bottom: 100%; /* 1:1 비율 */
         }
-        .video-container video {
+
+        .video-container img {
             position: absolute;
             top: 0;
             left: 0;
@@ -35,19 +50,65 @@
             height: 100%;
             object-fit: cover;
         }
+
         .video-info {
             padding: 15px;
         }
+
         .video-title {
-            margin: 0 0 10px 0;
+            margin: 0;
             font-size: 16px;
             font-weight: 600;
+            color: #fff;
         }
+
         .video-user {
-            color: #a8a8a8;
+            margin: 5px 0;
             font-size: 14px;
-            margin-bottom: 10px;
+            color: #a8a8a8;
         }
+
+        .item-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1;
+        }
+
+        .status-available {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .status-reserved {
+            background-color: #FFC107;
+            color: black;
+        }
+
+        .status-out-of-stock {
+            background-color: #F44336;
+            color: white;
+        }
+
+        .quantity-info {
+            font-size: 14px;
+            color: #a8a8a8;
+            margin-top: 5px;
+        }
+
+        .reservation-status {
+            font-size: 12px;
+            margin-top: 5px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            background-color: #2c2c2c;
+            display: inline-block;
+        }
+
         .upload-button {
             display: inline-block;
             background-color: #3897f0;
@@ -58,127 +119,81 @@
             margin-bottom: 20px;
             transition: background-color 0.3s;
         }
-        .upload-button:hover {
-            background-color: #1877f2;
-        }
-        .like-button, .comment-like-button, .show-more-button{
-            background-color: #3897f0;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .like-button:hover, .comment-like-button:hover, .show-more-button:hover{
-            background-color: #1877f2;
-        }
-        .like-count, .comment-like-count {
-            margin-left: 10px;
-            color: #a8a8a8;
-        }
-        .comment-form {
-            margin-top: 15px;
-        }
-        .comment-input {
-            width: calc(100% - 110px);
-            padding: 8px;
-            border: 1px solid #2c2c2c;
-            background-color: #2c2c2c;
-            color: #ffffff;
-            border-radius: 5px;
-        }
-        .comment-submit {
-            background-color: #3897f0;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .comment-submit:hover {
-            background-color: #1877f2;
-        }
-        .comment-section {
-            margin-top: 15px;
-        }
-        .comment {
-            border: 1px solid #2c2c2c;
-            background-color: #2c2c2c;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-        }
-        .show-more-button {
-            display: block;
-            width: 100%;
-            margin-top: 10px;
-        }
+
         .search-form {
             display: flex;
-            justify-content: center;
+            gap: 10px;
             margin-bottom: 20px;
         }
+
         .search-input {
-            width: 300px;
+            flex: 1;
+            max-width: 300px;
             padding: 10px;
-            border: 1px solid #dbdbdb;
-            border-radius: 5px 0 0 5px;
-            outline: none;
+            border: none;
+            border-radius: 5px;
+            background-color: #2c2c2c;
+            color: white;
         }
+
         .search-button {
             padding: 10px 20px;
-            border: 1px solid #dbdbdb;
-            border-left: none;
-            background-color: #0095f6;
+            border: none;
+            border-radius: 5px;
+            background-color: #3897f0;
             color: white;
-            border-radius: 0 5px 5px 0;
             cursor: pointer;
         }
+
         .home-button {
             position: fixed;
             top: 20px;
             right: 20px;
             background-color: #3897f0;
             color: white;
-            border: none;
             padding: 10px 20px;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
             text-decoration: none;
-            transition: background-color 0.3s;
-            z-index: 1000;
-        }
-        .home-button:hover {
-            background-color: #1877f2;
         }
     </style>
 </head>
 <body>
-<a href="/upload" class="upload-button">Upload New Video</a>
-<form class="search-form" action="/search/results" method="get">
-    <input type="text" name="query" class="search-input" placeholder="Search...">
-    <button type="submit" class="search-button">Search</button>
-</form>
-<a href="/home" class="home-button">Back to Home</a>
+<div class="container">
+    <a href="/upload" class="upload-button">Upload New Item</a>
+    <form class="search-form" action="/search/results" method="get">
+        <input type="text" name="query" class="search-input" placeholder="Search...">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+    <a href="/home" class="home-button">Back to Home</a>
 
-<div class="video-grid">
-    <div th:each="video : ${videos}" class="video-item">
-        <div class="video-container">
-            <a th:href="@{'/videos/detail/' + ${video.id}}">
-                <video th:id="'video-' + ${video.id}" loop muted>
-                    <source th:src="@{'/videos/file/' + ${video?.videoUrl ?: ''}}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </a>
-        </div>
-        <div class="video-info">
-            <h3 class="video-title" th:text="${video.title}">Video Title</h3>
-            <p class="video-user" th:text="${video.user.username}">Username</p>
-            <p class="like-count" th:text="${video.likeCount} + ' likes'">0 likes</p>
+    <div class="video-grid">
+        <div th:each="video : ${videos}" class="video-item">
+            <div class="video-container">
+                <a th:href="@{'/videos/detail/' + ${video.id}}">
+                    <img th:src="@{'/videos/file/' + ${video?.imageUrl}}" alt="Item Image">
+                    <div th:class="'item-status ' + 'status-' + ${#strings.toLowerCase(video.reservationStatus)}"
+                         th:text="${video.reservationStatus}">
+                        AVAILABLE
+                    </div>
+                </a>
+            </div>
+            <div class="video-info">
+                <h3 class="video-title" th:text="${video.title}">Item Title</h3>
+                <p class="video-user" th:text="${video.user.username}">Username</p>
+                <p class="quantity-info">
+                    <span th:text="${video.availableQuantity}">0</span> of
+                    <span th:text="${video.totalQuantity}">0</span> available
+                </p>
+                <div th:if="${video.reservationStatus == 'AVAILABLE'}" class="reservation-status">
+                    Available for reservation
+                </div>
+                <div th:if="${video.reservationStatus == 'RESERVED'}" class="reservation-status">
+                    Currently reserved
+                </div>
+                <div th:if="${video.reservationStatus == 'OUT_OF_STOCK'}" class="reservation-status">
+                    Out of stock
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -189,197 +204,7 @@
         searchInput.addEventListener('focus', function() {
             window.location.href = '/search/results';
         });
-
-        const videos = document.querySelectorAll('video');
-
-        const observerOptions = {
-            root: null,
-            rootMargin: '0px',
-            threshold: 0.5
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.play();
-                } else {
-                    entry.target.pause();
-                }
-            });
-        }, observerOptions);
-
-        videos.forEach(video => {
-            observer.observe(video);
-
-            video.addEventListener('click', function() {
-                if (this.paused) {
-                    this.play();
-                } else {
-                    this.pause();
-                }
-            });
-        });
     });
-
-    function likeVideo(videoId) {
-        fetch('/api/likes', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ videoId: videoId })
-        })
-            .then(response => response.json())
-            .then(data => {
-                const likeButton = document.getElementById('like-button-' + videoId);
-                const likeCount = document.getElementById('like-count-' + videoId);
-                if (data.liked) {
-                    likeButton.textContent = 'Unlike';
-                } else {
-                    likeButton.textContent = 'Like';
-                }
-                likeCount.textContent = data.likeCount + ' likes';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    }
-
-    function loadTopComment(videoId) {
-        fetch(`/videos/${videoId}/top-comment`)
-            .then(response => response.json())
-            .then(comment => {
-                const topCommentElement = document.getElementById(`top-comment-${videoId}`);
-                topCommentElement.innerHTML = `
-                    <div class="comment">
-                        <p>${comment.content}</p>
-                        <small>By ${comment.user.username}</small>
-                        <button onclick="likeComment(${comment.id})" class="comment-like-button">Like</button>
-                        <span>${comment.likeCount} likes</span>
-                    </div>
-                `;
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function loadComments(videoId, page = 0) {
-        fetch(`/api/comments/video/${videoId}?page=${page}&size=10&sort=likeCount,desc&sort=createdAt,desc`)
-            .then(response => response.json())
-            .then(data => {
-                const commentsElement = document.getElementById(`comments-${videoId}`);
-                data.content.forEach(comment => {
-                    commentsElement.innerHTML += `
-                    <div class="comment">
-                        <p>${comment.content}</p>
-                        <small>By ${comment.user.username}</small>
-                        <button onclick="likeComment(${comment.id})" class="comment-like-button">
-                            ${comment.likedByCurrentUser ? 'Unlike' : 'Like'}
-                        </button>
-                        <span class="comment-like-count">${comment.likeCount} likes</span>
-                    </div>
-                `;
-                });
-                if (!data.last) {
-                    commentsElement.innerHTML += `
-                    <button onclick="loadComments(${videoId}, ${page + 1})" class="show-more-button">Load more</button>
-                `;
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    // Load top comments for all videos when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        const videos = document.querySelectorAll('.video-item');
-        videos.forEach(video => {
-            const videoId = video.querySelector('video').id.split('-')[1];
-            loadTopComment(videoId);
-        });
-    });
-
-    function addComment(videoId) {
-        const commentInput = document.getElementById(`comment-input-${videoId}`);
-        const content = commentInput.value.trim();
-
-        if (content) {
-            fetch('/api/comments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ videoId: videoId, content: content })
-            })
-                .then(response => response.text())
-                .then(html => {
-                    commentInput.value = '';
-                    const commentsElement = document.getElementById(`comments-${videoId}`);
-                    commentsElement.insertAdjacentHTML('afterbegin', html);
-                })
-                .catch(error => console.error('Error:', error));
-        }
-    }
-
-    // 각 댓글 폼에 이벤트 리스너 추가
-    document.addEventListener('DOMContentLoaded', function() {
-        const commentForms = document.querySelectorAll('.comment-form');
-        commentForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const videoId = this.id.split('-')[2];
-                addComment(videoId);
-            });
-        });
-    });
-
-    function likeComment(commentId) {
-        fetch(`/api/comments/${commentId}/like`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-                if (commentElement) {
-                    const likeButton = commentElement.querySelector('.comment-like-button');
-                    const likeCount = commentElement.querySelector('.comment-like-count');
-
-                    if (likeButton && likeCount) {
-                        likeButton.textContent = data.liked ? 'Unlike' : 'Like';
-                        likeCount.textContent = `${data.likeCount} likes`;
-                    }
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function loadMoreComments(videoId) {
-        const commentsElement = document.getElementById(`comments-${videoId}`);
-        const commentCount = commentsElement.children.length;
-
-        fetch(`/api/comments/video/${videoId}?page=${Math.floor(commentCount / 5)}&size=5&sort=likeCount,desc&sort=createdAt,desc`)
-            .then(response => response.json())
-            .then(data => {
-                data.content.forEach(comment => {
-                    commentsElement.innerHTML += `
-                    <div class="comment" data-comment-id="${comment.id}">
-                        <p>${comment.content}</p>
-                        <small>By ${comment.user.username}</small>
-                        <button onclick="likeComment(${comment.id})" class="comment-like-button">
-                            ${comment.likedByCurrentUser ? 'Unlike' : 'Like'}
-                        </button>
-                        <span class="comment-like-count">${comment.likeCount} likes</span>
-                    </div>
-                `;
-                });
-                if (data.last) {
-                    document.querySelector(`button[onclick="loadMoreComments(${videoId})"]`).style.display = 'none';
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
 </script>
 </body>
 </html>
