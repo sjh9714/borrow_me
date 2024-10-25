@@ -170,8 +170,9 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public List<Video> searchVideos(String query) {
-        return videoRepository.findByHashtagsNameContainingOrUserUsernameContaining(query, query);
+        return videoRepository.findByTitleContainingOrUserUsernameContaining(query, query);
     }
+
 
     @Override
     public List<Video> searchVideosByHashtags(Set<String> hashtags) {

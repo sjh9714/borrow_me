@@ -18,7 +18,10 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     List<Video> findTop10ByOrderByViewCountDesc();
     List<Video> findByLikesUser(User user);
     List<Video> findByHashtagsNameContainingOrUserUsernameContaining(String hashtag, String username);
+    List<Video> findByTitleContainingOrDescriptionContaining(String title, String description);
+    List<Video> findByTitleContainingOrUserUsernameContaining(String title, String username);
     @Query("SELECT v FROM Video v JOIN v.hashtags h WHERE h.name IN :hashtags")
     List<Video> findByHashtagsIn(@Param("hashtags") Set<String> hashtags);
     List<Video> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
 }
