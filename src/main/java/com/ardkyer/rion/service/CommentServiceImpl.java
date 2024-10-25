@@ -19,6 +19,9 @@ public class CommentServiceImpl implements CommentService {
     private final CommentLikeRepository commentLikeRepository;
 
     @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
     public CommentServiceImpl(CommentRepository commentRepository, CommentLikeRepository commentLikeRepository) {
         this.commentRepository = commentRepository;
         this.commentLikeRepository = commentLikeRepository;
@@ -27,7 +30,26 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public Comment addComment(Comment comment) {
-        return commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+
+        if (savedComment.getVideo() != null) {
+            System.out.println("비디오 ID: " + savedComment.getVideo().getId());  // 비디오 ID 로그 출력
+        } else {
+            System.out.println("비디오가 null입니다.");
+        }
+
+        if (!savedComment.getVideo().getUser().equals(savedComment.getUser())) {
+            Notification notification = new Notification();
+            notification.setUser(savedComment.getVideo().getUser());
+            notification.setPostTitle(savedComment.getVideo().getTitle());
+            notification.setCommenterName(savedComment.getUser().getUsername());
+            notification.setCommentContent(savedComment.getContent());
+            notification.setVideoId(savedComment.getVideo().getId());  // 비디오 ID 설정
+
+            notificationRepository.save(notification);
+        }
+
+        return savedComment;
     }
 
     @Override

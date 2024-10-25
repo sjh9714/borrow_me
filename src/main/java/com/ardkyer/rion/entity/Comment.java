@@ -63,4 +63,5 @@ public class Comment {
         return this.getLikes().stream()
                 .anyMatch(like -> like.getUser().equals(user));
     }
+
 }
