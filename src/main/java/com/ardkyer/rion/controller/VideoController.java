@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
@@ -49,6 +51,17 @@ public class VideoController {
     @Autowired
     private FollowService followService;
 
+    // DTO classes for request handling
+    @Getter @Setter
+    public static class ReservationRequest {
+        private Integer quantity;
+    }
+
+    @Getter @Setter
+    public static class StatusUpdateRequest {
+        private String status;
+    }
+
     @GetMapping
     @Operation(summary = "List all items", description = "Retrieves a list of all items with comments")
     public String listVideos(Model model, Authentication authentication) {
@@ -79,7 +92,7 @@ public class VideoController {
         S3Object s3Object = videoService.getVideoFile(fileName);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.IMAGE_JPEG); // 이미지 타입으로 변경
+        headers.setContentType(MediaType.IMAGE_JPEG);
         headers.setContentLength(s3Object.getObjectMetadata().getContentLength());
 
         return ResponseEntity.ok()
@@ -101,7 +114,6 @@ public class VideoController {
                                    @RequestParam("totalQuantity") Integer totalQuantity,
                                    @RequestParam(value = "hashtags", required = false) String hashtags,
                                    Authentication authentication) throws IOException {
-        // 이미지 파일 타입 검증
         if (!file.getContentType().startsWith("image/")) {
             throw new IllegalArgumentException("Only image files are allowed!");
         }
@@ -117,31 +129,173 @@ public class VideoController {
         video.setReservationStatus(Video.ReservationStatus.AVAILABLE);
 
         Set<String> hashtagSet = extractHashtags(description, hashtags);
-
         videoService.uploadVideo(video, file, hashtagSet);
 
         return "redirect:/videos";
     }
 
-    // 예약 관련 엔드포인트 추가
     @PostMapping("/{id}/reserve")
     @ResponseBody
     public ResponseEntity<?> reserveItem(@PathVariable Long id,
-                                         @RequestParam Integer quantity,
+                                         @RequestBody ReservationRequest request,
                                          Authentication authentication) {
-        User currentUser = userService.findByUsername(authentication.getName());
-        Video video = videoService.getVideoById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Item not found"));
-
         try {
-            Reservation reservation = reservationService.reserve(video, currentUser, quantity);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("reservationId", reservation.getId());
-            response.put("remainingQuantity", video.getAvailableQuantity());
-            return ResponseEntity.ok(response);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            User currentUser = userService.findByUsername(authentication.getName());
+            Video video = videoService.getVideoById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+
+            // 본인 상품 예약 방지
+            if (video.getUser().getId().equals(currentUser.getId())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "자신의 상품은 예약할 수 없습니다."
+                ));
+            }
+
+            if (request.getQuantity() == null || request.getQuantity() <= 0) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Invalid quantity"
+                ));
+            }
+
+            if (request.getQuantity() > video.getAvailableQuantity()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "재고가 부족합니다."
+                ));
+            }
+
+            Reservation reservation = reservationService.reserve(video, currentUser, request.getQuantity());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "reservationId", reservation.getId(),
+                    "remainingQuantity", video.getAvailableQuantity()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable Long id, Model model, Authentication authentication) {
+        Optional<Video> videoOptional = videoService.getVideoById(id);
+        if (videoOptional.isPresent()) {
+            Video video = videoOptional.get();
+
+            // 작성자 확인
+            User currentUser = userService.findByUsername(authentication.getName());
+            if (!video.getUser().getId().equals(currentUser.getId())) {
+                return "redirect:/videos";
+            }
+
+            model.addAttribute("video", video);
+            return "editForm";  // editForm.html 템플릿 필요
+        }
+        return "redirect:/videos";
+    }
+
+    @PostMapping("/edit/{id}")
+    public String updateVideo(@PathVariable Long id,
+                              @RequestParam("title") String title,
+                              @RequestParam("description") String description,
+                              @RequestParam(value = "image", required = false) MultipartFile file,
+                              @RequestParam("totalQuantity") Integer totalQuantity,
+                              Authentication authentication) throws IOException {
+        Optional<Video> videoOptional = videoService.getVideoById(id);
+        if (videoOptional.isPresent()) {
+            Video video = videoOptional.get();
+
+            // 작성자 확인
+            User currentUser = userService.findByUsername(authentication.getName());
+            if (!video.getUser().getId().equals(currentUser.getId())) {
+                return "redirect:/videos";
+            }
+
+            // 기본 정보 업데이트
+            video.setTitle(title);
+            video.setDescription(description);
+            video.setTotalQuantity(totalQuantity);
+
+            // 이미지가 제공된 경우에만 업데이트
+            if (file != null && !file.isEmpty()) {
+                if (!file.getContentType().startsWith("image/")) {
+                    throw new IllegalArgumentException("Only image files are allowed!");
+                }
+                videoService.updateVideoWithImage(video, file);
+            } else {
+                videoService.updateVideo(video);
+            }
+        }
+        return "redirect:/videos/detail/" + id;
+    }
+
+    @PutMapping("/{id}/status")
+    @ResponseBody
+    public ResponseEntity<?> updateStatus(@PathVariable Long id,
+                                          @RequestBody StatusUpdateRequest request,
+                                          Authentication authentication) {
+        try {
+            User currentUser = userService.findByUsername(authentication.getName());
+            Video video = videoService.getVideoById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+
+            if (!video.getUser().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "success", false,
+                        "message", "권한이 없습니다."
+                ));
+            }
+
+            try {
+                Video.ReservationStatus newStatus = Video.ReservationStatus.valueOf(request.getStatus().toUpperCase());
+                video.setReservationStatus(newStatus);
+                video = videoService.updateVideo(video);  // 업데이트된 비디오 객체 받기
+
+                return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "status", video.getReservationStatus()
+                ));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Invalid status value"
+                ));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<?> deleteVideo(@PathVariable Long id, Authentication authentication) {
+        try {
+            User currentUser = userService.findByUsername(authentication.getName());
+            Video video = videoService.getVideoById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+
+            if (!video.getUser().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "success", false,
+                        "message", "권한이 없습니다."
+                ));
+            }
+
+            videoService.deleteVideo(id);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
         }
     }
 
@@ -152,7 +306,10 @@ public class VideoController {
             reservationService.cancelReservation(id);
             return ResponseEntity.ok(Map.of("success", true));
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
         }
     }
 
@@ -169,17 +326,17 @@ public class VideoController {
                 isFollowing = followService.isFollowing(currentUser, video.getUser());
 
                 // 현재 사용자의 예약 정보 추가
-                Optional<Reservation> userReservation = reservationService.getReservationByVideoAndUser(video, currentUser);
-                model.addAttribute("userReservation", userReservation.orElse(null));
+                List<Reservation> userReservations = reservationService.getReservationByVideoAndUser(video, currentUser);
+                model.addAttribute("userReservations", userReservations);
+                model.addAttribute("hasReservation", !userReservations.isEmpty());
             }
 
             model.addAttribute("video", video);
             model.addAttribute("isFollowing", isFollowing);
             model.addAttribute("currentUser", getCurrentUser(authentication));
             return "detailPage";
-        } else {
-            return "redirect:/videos";
         }
+        return "redirect:/videos";
     }
 
     private void prepareVideosForDisplay(List<Video> videos, Authentication authentication) {

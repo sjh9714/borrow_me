@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Edit Item</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        /* 기존 스타일 재사용 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background-color: #1c1c1c;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+
+        .current-image {
+            max-width: 300px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .submit-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .cancel-button {
+            background-color: #666;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Edit Item</h1>
+    <form th:action="@{'/videos/edit/' + ${video.id}}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">제목</label>
+            <input type="text" id="title" name="title" th:value="${video.title}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">설명</label>
+            <textarea id="description" name="description" th:text="${video.description}" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="totalQuantity">총 수량</label>
+            <input type="number" id="totalQuantity" name="totalQuantity" th:value="${video.totalQuantity}" required>
+        </div>
+
+        <div class="form-group">
+            <label>현재 이미지</label>
+            <img th:src="@{'/videos/file/' + ${video.imageUrl}}" alt="Current Image" class="current-image">
+            <label for="image">새 이미지 업로드 (선택사항)</label>
+            <input type="file" id="image" name="image" accept="image/*">
+        </div>
+
+        <button type="submit" class="button submit-button">수정 완료</button>
+        <a th:href="@{'/videos/detail/' + ${video.id}}" class="button cancel-button">취소</a>
+    </form>
+</div>
+</body>
+</html>

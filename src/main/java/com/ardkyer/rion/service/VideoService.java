@@ -40,4 +40,9 @@ public interface VideoService {
     // 댓글 관련
     List<Video> getAllVideosWithComments();
     List<Video> getAllVideosWithSortedComments();
+
+    Video updateVideoWithImage(Video video, MultipartFile file) throws IOException;
+    void migrateExistingVideos();
+    void updateUnitStatus(Long unitId, ItemStatus status);
+    List<ItemUnit> getVideoUnits(Long videoId);
 }

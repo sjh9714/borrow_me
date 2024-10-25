@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.ardkyer.rion.entity.*;
 import com.ardkyer.rion.repository.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
+@Transactional
 public class VideoServiceImpl implements VideoService {
 
     @Autowired
@@ -25,6 +28,7 @@ public class VideoServiceImpl implements VideoService {
     private final CommentRepository commentRepository;
     private final HashtagRepository hashtagRepository;
     private final AmazonS3 amazonS3Client;
+    private ItemUnitRepository itemUnitRepository;
 
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucketName;
@@ -52,11 +56,22 @@ public class VideoServiceImpl implements VideoService {
         amazonS3Client.putObject(bucketName, fileName, file.getInputStream(), metadata);
 
         video.setImageUrl(fileName);
+        video.initializeUnits();  // 새 비디오 업로드 시 유닛 초기화
 
         Set<Hashtag> hashtags = convertNamesToHashtags(hashtagNames);
         video.setHashtags(hashtags);
 
         return videoRepository.save(video);
+    }
+
+    @Transactional
+    public void updateAllUnitsStatus(Long videoId, ItemStatus status) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found"));
+
+        video.getUnits().forEach(unit -> unit.setStatus(status));
+        video.updateReservationStatus();
+        videoRepository.save(video);
     }
 
     private Set<Hashtag> convertNamesToHashtags(Set<String> hashtagNames) {
@@ -86,6 +101,7 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
+    @Transactional
     public Video updateVideo(Video video) {
         return videoRepository.save(video);
     }
@@ -96,7 +112,12 @@ public class VideoServiceImpl implements VideoService {
         Optional<Video> videoOptional = videoRepository.findById(id);
         if (videoOptional.isPresent()) {
             Video video = videoOptional.get();
-            amazonS3Client.deleteObject(bucketName, video.getImageUrl());
+            try {
+                amazonS3Client.deleteObject(bucketName, video.getImageUrl());
+            } catch (Exception e) {
+                // S3 삭제 실패 로깅
+                log.error("Failed to delete image from S3: " + e.getMessage());
+            }
             videoRepository.deleteById(id);
         } else {
             throw new RuntimeException("Video not found with id: " + id);
@@ -180,5 +201,72 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public List<Video> getRecentVideosByUser(User user, int limit) {
         return videoRepository.findByUserOrderByCreatedAtDesc(user, PageRequest.of(0, limit));
+    }
+
+    @Override
+    @Transactional
+    public Video updateVideoWithImage(Video video, MultipartFile file) throws IOException {
+        // 기존 이미지가 있다면 삭제
+        if (video.getImageUrl() != null && !video.getImageUrl().isEmpty()) {
+            try {
+                amazonS3Client.deleteObject(bucketName, video.getImageUrl());
+            } catch (Exception e) {
+                // S3 삭제 실패 로깅
+                log.error("Failed to delete old image from S3: " + e.getMessage());
+            }
+        }
+
+        // 새 이미지 업로드
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType(file.getContentType());
+        metadata.setContentLength(file.getSize());
+
+        try {
+            amazonS3Client.putObject(bucketName, fileName, file.getInputStream(), metadata);
+        } catch (IOException e) {
+            throw new IOException("Failed to upload image to S3: " + e.getMessage());
+        }
+
+        // 이미지 URL 업데이트
+        video.setImageUrl(fileName);
+
+        // DB 업데이트
+        return videoRepository.save(video);
+    }
+
+    @Transactional
+    public void migrateExistingVideos() {
+        List<Video> videos = videoRepository.findAll();
+        for (Video video : videos) {
+            if (video.getUnits().isEmpty()) {
+                video.initializeUnits();  // 초기화 메서드 호출
+                videoRepository.save(video);
+            }
+        }
+    }
+
+    // ItemUnit 상태 변경을 위한 새로운 메서드 추가
+    @Transactional
+    public void updateUnitStatus(Long unitId, ItemStatus status) {
+        Optional<ItemUnit> unitOpt = itemUnitRepository.findById(unitId);
+        if (unitOpt.isPresent()) {
+            ItemUnit unit = unitOpt.get();
+            unit.setStatus(status);
+            itemUnitRepository.save(unit);
+
+            Video video = unit.getVideo();
+            video.updateReservationStatus();  // 이제 public 메서드로 호출 가능
+            videoRepository.save(video);
+        } else {
+            throw new RuntimeException("Unit not found with id: " + unitId);
+        }
+    }
+
+    // 특정 비디오의 모든 유닛 조회
+    public List<ItemUnit> getVideoUnits(Long videoId) {
+        return videoRepository.findById(videoId)
+                .map(Video::getUnits)
+                .orElseThrow(() -> new RuntimeException("Video not found"));
     }
 }

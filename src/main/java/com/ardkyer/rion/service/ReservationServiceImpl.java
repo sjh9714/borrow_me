@@ -24,18 +24,11 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public Reservation reserve(Video video, User user, int quantity) {
-        // 예약 가능 여부 확인
-        if (!canReserve(video, quantity)) {
-            throw new IllegalStateException("예약할 수 없는 상품입니다.");
+        if (video.getAvailableQuantity() < quantity) {
+            throw new IllegalStateException("재고가 부족합니다.");
         }
 
-        // 이미 해당 사용자가 이 상품을 예약했는지 확인
-        Optional<Reservation> existingReservation = getReservationByVideoAndUser(video, user);
-        if (existingReservation.isPresent()) {
-            throw new IllegalStateException("이미 예약한 상품입니다.");
-        }
-
-        // 예약 생성
+        // 새 예약 생성
         Reservation reservation = new Reservation();
         reservation.setVideo(video);
         reservation.setUser(user);
@@ -85,7 +78,7 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public Optional<Reservation> getReservationByVideoAndUser(Video video, User user) {
+    public List<Reservation> getReservationByVideoAndUser(Video video, User user) {
         return reservationRepository.findByVideoAndUser(video, user);
     }
 

@@ -45,6 +45,9 @@ public class Video {
     @Enumerated(EnumType.STRING)
     private ReservationStatus reservationStatus = ReservationStatus.AVAILABLE;
 
+    @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemUnit> units = new ArrayList<>();
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -71,9 +74,20 @@ public class Video {
     private boolean followedByCurrentUser;
 
     public enum ReservationStatus {
-        AVAILABLE,       // 예약 가능
-        RESERVED,       // 예약중
-        OUT_OF_STOCK    // 재고 없음
+        AVAILABLE("예약가능"),
+        RESERVED("예약중"),
+        IN_USE("사용중"),
+        OUT_OF_STOCK("재고없음");
+
+        private final String displayName;
+
+        ReservationStatus(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 
     @PrePersist
@@ -83,6 +97,7 @@ public class Video {
         if (availableQuantity == null) {
             availableQuantity = totalQuantity;
         }
+        initializeItemUnits();
     }
 
     @PreUpdate
@@ -91,21 +106,45 @@ public class Video {
         updateReservationStatus();
     }
 
-    private void updateReservationStatus() {
-        if (availableQuantity == 0) {
-            this.reservationStatus = ReservationStatus.OUT_OF_STOCK;
-        } else if (!reservations.isEmpty()) {
-            this.reservationStatus = ReservationStatus.RESERVED;
-        } else {
-            this.reservationStatus = ReservationStatus.AVAILABLE;
+    private void initializeItemUnits() {
+        if (units.isEmpty() && totalQuantity != null && totalQuantity > 0) {  // units를 units로 변경
+            for (int i = 0; i < totalQuantity; i++) {
+                ItemUnit unit = new ItemUnit();
+                unit.setVideo(this);
+                unit.setUnitNumber(i + 1);
+                unit.setStatus(ItemStatus.AVAILABLE);
+                units.add(unit);  // units를 units로 변경
+            }
         }
     }
 
-    public boolean isAvailableForReservation() {
-        return availableQuantity > 0 && reservationStatus != ReservationStatus.OUT_OF_STOCK;
+    public void updateReservationStatus() {
+        if (units.isEmpty()) {
+            this.reservationStatus = ReservationStatus.AVAILABLE;
+            return;
+        }
+
+        long availableCount = units.stream()
+                .filter(unit -> unit.getStatus() == ItemStatus.AVAILABLE)
+                .count();
+
+        if (availableCount == 0) {
+            this.reservationStatus = ReservationStatus.OUT_OF_STOCK;
+        } else if (availableCount == units.size()) {
+            this.reservationStatus = ReservationStatus.AVAILABLE;
+        } else if (units.stream().anyMatch(unit -> unit.getStatus() == ItemStatus.IN_USE)) {
+            this.reservationStatus = ReservationStatus.IN_USE;
+        } else {
+            this.reservationStatus = ReservationStatus.RESERVED;
+        }
+
+        this.availableQuantity = (int) availableCount;
     }
 
-    // For backwards compatibility
+    public boolean isAvailableForReservation() {
+        return units.stream().anyMatch(unit -> unit.getStatus() == ItemStatus.AVAILABLE);
+    }
+
     public String getVideoUrl() {
         return this.imageUrl;
     }
@@ -113,4 +152,33 @@ public class Video {
     public void setVideoUrl(String url) {
         this.imageUrl = url;
     }
+
+    public List<ItemUnit> getAvailableUnits() {
+        return units.stream()
+                .filter(unit -> unit.getStatus() == ItemStatus.AVAILABLE)
+                .toList();
+    }
+
+    public boolean hasAvailableUnits() {
+        return getAvailableCount() > 0;
+    }
+
+    public int getAvailableCount() {
+        return (int) units.stream()
+                .filter(unit -> unit.getStatus() == ItemStatus.AVAILABLE)
+                .count();
+    }
+
+    public void initializeUnits() {
+        if (units.isEmpty() && totalQuantity != null && totalQuantity > 0) {
+            for (int i = 0; i < totalQuantity; i++) {
+                ItemUnit unit = new ItemUnit();
+                unit.setVideo(this);
+                unit.setUnitNumber(i + 1);
+                unit.setStatus(ItemStatus.AVAILABLE);
+                units.add(unit);
+            }
+        }
+    }
 }
+

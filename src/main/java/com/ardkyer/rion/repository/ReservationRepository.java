@@ -11,8 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
-    List<Reservation> findByUser(User user);
+    List<Reservation> findByVideoAndUser(Video video, User user);
     List<Reservation> findByVideo(Video video);
-    Optional<Reservation> findByVideoAndUser(Video video, User user);
-    List<Reservation> findByVideoAndStatus(Video video, Reservation.ReservationStatus status);
+    List<Reservation> findByUser(User user);
 }

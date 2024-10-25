@@ -24,7 +24,7 @@ public interface ReservationService {
     List<Reservation> getVideoReservations(Video video);
 
     // 특정 사용자의 특정 상품 예약 조회
-    Optional<Reservation> getReservationByVideoAndUser(Video video, User user);
+    List<Reservation> getReservationByVideoAndUser(Video video, User user);
 
     // 예약 상태 변경
     Reservation updateReservationStatus(Long reservationId, Reservation.ReservationStatus status);
