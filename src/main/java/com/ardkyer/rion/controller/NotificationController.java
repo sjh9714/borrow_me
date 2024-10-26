@@ -1,7 +1,6 @@
 package com.ardkyer.rion.controller;
 
 import com.ardkyer.rion.entity.Notification;
-import com.ardkyer.rion.entity.NotificationType;
 import com.ardkyer.rion.repository.NotificationRepository;
 import com.ardkyer.rion.security.PrincipalDetails;
 import com.ardkyer.rion.service.NotificationService;
@@ -9,17 +8,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-@Controller
-@RequestMapping("/notifications")
+@RestController
+@RequestMapping("/api/notifications") // RESTful URL로 변경
 public class NotificationController {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationController.class);
@@ -30,38 +26,50 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    // 모든 알림을 조회하는 메서드
     @GetMapping
-    public String getNotifications(Model model, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+    public Map<String, Object> getNotifications(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(principalDetails.getUser());
-        model.addAttribute("notifications", notifications);
-        return "notifications";
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("notifications", notifications);
+        return response;
     }
 
-    @GetMapping("/read/{id}")
-    public String readNotification(@PathVariable Long id) {
+    // 특정 알림을 읽음 상태로 표시하는 메서드
+    @PutMapping("/read/{id}")
+    public Map<String, Object> readNotification(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
         try {
             Notification notification = notificationService.getNotification(id);
-            notificationService.markAsRead(id);  // 알림 읽음 처리
+            notificationService.markAsRead(id); // 알림 읽음 처리
 
-            if (notification.getVideo() != null) {
-                return "redirect:/videos/detail/" + notification.getVideo().getId();
-            }
-            return "redirect:/notifications";
+            response.put("success", true);
+            response.put("redirectUrl", notification.getVideo() != null
+                    ? "/videos/detail/" + notification.getVideo().getId()
+                    : "/notifications");
         } catch (Exception e) {
             logger.error("Error reading notification: ", e);
-            return "redirect:/notifications";
+            response.put("success", false);
+            response.put("message", "Error reading notification");
         }
+        return response;
     }
 
-    @PostMapping("/delete-read")
-    public String deleteReadNotifications(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+    // 읽은 알림을 삭제하는 메서드
+    @DeleteMapping("/delete-read")
+    public Map<String, Object> deleteReadNotifications(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+        Map<String, Object> response = new HashMap<>();
         try {
             List<Notification> readNotifications = notificationRepository.findByUserAndIsReadTrue(principalDetails.getUser());
             notificationRepository.deleteAll(readNotifications);
-            return "redirect:/notifications";
+            response.put("success", true);
+            response.put("message", "읽은 알림이 삭제되었습니다.");
         } catch (Exception e) {
             logger.error("Error deleting read notifications: ", e);
-            return "redirect:/notifications";
+            response.put("success", false);
+            response.put("message", "Error deleting read notifications");
         }
+        return response;
     }
 }
