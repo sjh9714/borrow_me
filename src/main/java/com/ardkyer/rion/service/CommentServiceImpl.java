@@ -12,14 +12,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class CommentServiceImpl implements CommentService {
-    private final CommentRepository commentRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
-
-    @Autowired
-    private NotificationService notificationService;  // NotificationService 추가
 
     @Autowired
     public CommentServiceImpl(CommentRepository commentRepository) {
@@ -75,9 +75,19 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    @Transactional
+    @Transactional  // 메서드 레벨에도 @Transactional 추가
     public void deleteComment(Long id) {
-        commentRepository.deleteById(id);
+        try {
+            // 1. 해당 댓글과 관련된 알림 삭제
+            notificationRepository.deleteAllByParentCommentId(id);  // 답글 관련 알림 먼저 삭제
+            notificationRepository.deleteAllByCommentId(id);        // 댓글 관련 알림 삭제
+
+            // 2. 댓글 삭제 (cascade로 인해 답글도 자동 삭제됨)
+            commentRepository.deleteById(id);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete comment: " + e.getMessage());
+        }
     }
 
     @Override

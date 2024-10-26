@@ -184,4 +184,18 @@ public class CommentController {
             ));
         }
     }
+
+    @DeleteMapping("/api/comments/{id}")
+    public ResponseEntity<Map<String, Object>> deleteComment(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            commentService.deleteComment(id);
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "댓글 삭제에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }
