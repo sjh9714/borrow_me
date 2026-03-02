@@ -150,11 +150,32 @@ List<Follow> findByFollowerAndFollowedIn(User follower, List<User> followed);
 @Lock(LockModeType.PESSIMISTIC_WRITE)
 @Query("SELECT v FROM Video v WHERE v.id = :id")
 Optional<Video> findByIdForUpdate(Long id);
+```
 
-// Service: 잠금 획득 후 재고 확인 및 감소
+**추가 발견 — Hibernate L1 캐시가 Pessimistic Lock을 무력화하는 문제**
+
+k6 부하 테스트(100명 동시 예약)로 검증하는 과정에서, `SELECT FOR UPDATE`가 실제로 실행되지 않는 현상을 발견.
+
+- **원인**: Spring Boot의 OSIV(`open-in-view=true`)가 기본 활성화되어 Controller부터 같은 Hibernate Session이 유지됨. Controller에서 `getVideoById()`로 이미 로딩된 Video 엔티티가 L1 캐시에 존재하므로, Service에서 `findByIdForUpdate()`를 호출해도 **DB 조회 없이 캐시된 엔티티를 반환** → `FOR UPDATE` 잠금이 걸리지 않음
+- **결과**: 재고 50개 상품에 100명이 동시 예약 → **100건 전부 성공**, 재고 불일치 발생
+
+```java
+// Before: L1 캐시로 인해 SELECT FOR UPDATE가 실행되지 않음
 @Transactional
 public Reservation reserve(Video video, User user, int quantity) {
-    Video lockedVideo = videoRepository.findByIdForUpdate(video.getId())
+    // video가 이미 L1 캐시에 존재 → DB 조회 없이 캐시 반환
+    Video lockedVideo = videoRepository.findByIdForUpdate(video.getId()); // FOR UPDATE 무시됨
+    // ...
+}
+```
+
+```java
+// After: entityManager.detach()로 L1 캐시 제거 후 SELECT FOR UPDATE 실행
+@Transactional
+public Reservation reserve(Video video, User user, int quantity) {
+    entityManager.detach(video); // L1 캐시에서 제거
+
+    Video lockedVideo = videoRepository.findByIdForUpdate(video.getId()) // FOR UPDATE 정상 실행
             .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
     if (lockedVideo.getAvailableQuantity() < quantity) {
@@ -162,9 +183,6 @@ public Reservation reserve(Video video, User user, int quantity) {
     }
 
     lockedVideo.setAvailableQuantity(lockedVideo.getAvailableQuantity() - quantity);
-    if (lockedVideo.getAvailableQuantity() == 0) {
-        lockedVideo.setReservationStatus(Video.ReservationStatus.OUT_OF_STOCK);
-    }
     // ...
 }
 ```
@@ -172,11 +190,13 @@ public Reservation reserve(Video video, User user, int quantity) {
 ```
 시간 ──────────────────────────────────────────>
 
-트랜잭션 A:  LOCK ── READ(재고=1) ── UPDATE(재고=0) ── COMMIT ── UNLOCK
-트랜잭션 B:         (대기)                                 LOCK ── READ(재고=0) ── 예외 발생
+트랜잭션 A:  detach → LOCK ── READ(재고=1) ── UPDATE(재고=0) ── COMMIT ── UNLOCK
+트랜잭션 B:           (대기)                                      LOCK ── READ(재고=0) ── 예외 발생
 
 결과: 정확히 1건만 예약 성공, 재고 정합성 보장
 ```
+
+**k6 검증 결과**: 재고 50개 상품 + 100명 동시 예약 → 성공 50건 + 실패 50건, 최종 재고 0 (정합성 100%)
 
 ---
 
@@ -283,6 +303,21 @@ if (!newHashtags.isEmpty()) {
 | Pessimistic Lock (`SELECT FOR UPDATE`) | `ReservationServiceImpl.reserve()` | 상품 재고 수량 |
 | `@Transactional` 격리 | 예약 생성/취소 | 재고 + 예약 상태 일관성 |
 | 자동 상태 전이 | 재고 변경 시 | `AVAILABLE → RESERVED → OUT_OF_STOCK` |
+| L1 캐시 무력화 방지 | `entityManager.detach()` | OSIV 환경에서 `FOR UPDATE` 정상 작동 보장 |
+
+### k6 부하 테스트 결과
+
+k6로 실제 부하 환경에서 성능 최적화 효과를 수치로 검증:
+
+| 테스트 | VU | 조건 | p95 응답시간 | 처리량 | 결과 |
+|--------|-----|------|-------------|--------|------|
+| **동시 예약** | 100 | 재고 50개, 1회씩 동시 요청 | 233ms | - | 성공 50건, 실패 50건, 초과 예약 0건 |
+| **상품 목록 조회** | 30 | 상품 100개 + 해시태그 + 팔로우, 30초 지속 | 20ms | 256 req/s | 에러율 0%, 7,761회 처리 |
+| **검색** | 30 | 다양한 검색어, 30초 지속 | 72ms | 223 req/s | 에러율 0%, 6,754회 처리 |
+
+- **동시 예약**: Pessimistic Lock + `entityManager.detach()`로 100명 동시 접근에서도 재고 정합성 100% 보장
+- **상품 목록**: JOIN FETCH + 배치 쿼리 최적화로 30 VU 지속 부하에서 p95 20ms 유지
+- **검색**: 해시태그 배치 로딩으로 30 VU 지속 부하에서 p95 72ms, 에러율 0%
 
 ---
 
@@ -339,6 +374,7 @@ src/main/java/com/ardkyer/rion/
 | **Validation** | Jakarta Bean Validation |
 | **Build** | Gradle |
 | **Test** | JUnit 5, H2 인메모리 DB |
+| **Load Test** | k6 (동시성 검증, 부하 테스트) |
 
 ---
 

@@ -5,6 +5,8 @@ import com.ardkyer.rion.entity.User;
 import com.ardkyer.rion.entity.Reservation;
 import com.ardkyer.rion.repository.ReservationRepository;
 import com.ardkyer.rion.repository.VideoRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +23,15 @@ public class ReservationServiceImpl implements ReservationService {
     @Autowired
     private VideoRepository videoRepository;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Override
     @Transactional
     public Reservation reserve(Video video, User user, int quantity) {
+        // L1 캐시에서 기존 Video 엔티티를 제거하여 SELECT FOR UPDATE가 실제 DB 조회하도록 보장
+        entityManager.detach(video);
+
         // Pessimistic Lock으로 Video를 재조회하여 동시성 보장
         Video lockedVideo = videoRepository.findByIdForUpdate(video.getId())
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
