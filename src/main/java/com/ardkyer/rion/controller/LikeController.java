@@ -22,11 +22,13 @@ import java.util.Map;
 public class LikeController {
     private final LikeService likeService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final VideoService videoService;
 
     @Autowired
-    public LikeController(LikeService likeService, CustomUserDetailsService customUserDetailsService) {
+    public LikeController(LikeService likeService, CustomUserDetailsService customUserDetailsService, VideoService videoService) {
         this.likeService = likeService;
         this.customUserDetailsService = customUserDetailsService;
+        this.videoService = videoService;
     }
 
     @PostMapping
@@ -36,8 +38,8 @@ public class LikeController {
             @Parameter(description = "Video ID to like/unlike", required = true) @RequestBody Map<String, Long> payload,
             Authentication authentication) {
         User user = customUserDetailsService.loadUserEntityByUsername(authentication.getName());
-        Video video = new Video();
-        video.setId(payload.get("videoId"));
+        Video video = videoService.getVideoById(payload.get("videoId"))
+                .orElseThrow(() -> new IllegalArgumentException("Video not found"));
 
         boolean liked = likeService.toggleLike(user, video);
         long likeCount = likeService.getLikeCountForVideo(video);
@@ -56,8 +58,8 @@ public class LikeController {
             @Parameter(description = "ID of the video to remove like from", required = true) @PathVariable Long videoId,
             Authentication authentication) {
         User user = customUserDetailsService.loadUserEntityByUsername(authentication.getName());
-        Video video = new Video();
-        video.setId(videoId);
+        Video video = videoService.getVideoById(videoId)
+                .orElseThrow(() -> new IllegalArgumentException("Video not found"));
 
         likeService.removeLike(user, video);
         return ResponseEntity.noContent().build();

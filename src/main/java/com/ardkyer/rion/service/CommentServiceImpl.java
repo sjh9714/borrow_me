@@ -15,15 +15,14 @@ import java.util.Optional;
 @Transactional
 public class CommentServiceImpl implements CommentService {
 
-    @Autowired
-    private CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
+    private final NotificationRepository notificationRepository;
 
     @Autowired
-    private NotificationRepository notificationRepository;
-
-    @Autowired
-    public CommentServiceImpl(CommentRepository commentRepository) {
+    public CommentServiceImpl(CommentRepository commentRepository,
+                              NotificationRepository notificationRepository) {
         this.commentRepository = commentRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     @Override

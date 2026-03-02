@@ -24,26 +24,30 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public Reservation reserve(Video video, User user, int quantity) {
-        if (video.getAvailableQuantity() < quantity) {
+        // Pessimistic Lock으로 Video를 재조회하여 동시성 보장
+        Video lockedVideo = videoRepository.findByIdForUpdate(video.getId())
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        if (lockedVideo.getAvailableQuantity() < quantity) {
             throw new IllegalStateException("재고가 부족합니다.");
         }
 
         // 새 예약 생성
         Reservation reservation = new Reservation();
-        reservation.setVideo(video);
+        reservation.setVideo(lockedVideo);
         reservation.setUser(user);
         reservation.setQuantity(quantity);
         reservation.setStatus(Reservation.ReservationStatus.PENDING);
 
         // 재고 수량 감소
-        video.setAvailableQuantity(video.getAvailableQuantity() - quantity);
-        if (video.getAvailableQuantity() == 0) {
-            video.setReservationStatus(Video.ReservationStatus.OUT_OF_STOCK);
+        lockedVideo.setAvailableQuantity(lockedVideo.getAvailableQuantity() - quantity);
+        if (lockedVideo.getAvailableQuantity() == 0) {
+            lockedVideo.setReservationStatus(Video.ReservationStatus.OUT_OF_STOCK);
         } else {
-            video.setReservationStatus(Video.ReservationStatus.RESERVED);
+            lockedVideo.setReservationStatus(Video.ReservationStatus.RESERVED);
         }
 
-        videoRepository.save(video);
+        videoRepository.save(lockedVideo);
         return reservationRepository.save(reservation);
     }
 

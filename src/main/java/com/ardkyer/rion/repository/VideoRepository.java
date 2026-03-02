@@ -2,11 +2,14 @@ package com.ardkyer.rion.repository;
 
 import com.ardkyer.rion.entity.Video;
 import com.ardkyer.rion.entity.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository
@@ -29,4 +32,9 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     // 최근 게시물
     @Query("SELECT v FROM Video v ORDER BY v.createdAt DESC")
     List<Video> findRecentVideos(Pageable pageable);
+
+    // 예약 시 Pessimistic Lock
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT v FROM Video v WHERE v.id = :id")
+    Optional<Video> findByIdForUpdate(Long id);
 }

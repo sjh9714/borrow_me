@@ -23,12 +23,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class VideoServiceImpl implements VideoService {
 
-    @Autowired
-    private VideoRepository videoRepository;
+    private final VideoRepository videoRepository;
     private final CommentRepository commentRepository;
     private final HashtagRepository hashtagRepository;
     private final AmazonS3 amazonS3Client;
-    private ItemUnitRepository itemUnitRepository;
+    private final ItemUnitRepository itemUnitRepository;
 
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucketName;
@@ -37,17 +36,20 @@ public class VideoServiceImpl implements VideoService {
     public VideoServiceImpl(VideoRepository videoRepository,
                             CommentRepository commentRepository,
                             HashtagRepository hashtagRepository,
-                            AmazonS3 amazonS3Client) {
+                            AmazonS3 amazonS3Client,
+                            ItemUnitRepository itemUnitRepository) {
         this.videoRepository = videoRepository;
         this.commentRepository = commentRepository;
         this.hashtagRepository = hashtagRepository;
         this.amazonS3Client = amazonS3Client;
+        this.itemUnitRepository = itemUnitRepository;
     }
 
     @Override
     @Transactional
     public Video uploadVideo(Video video, MultipartFile file, Set<String> hashtagNames) throws IOException {
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        String extension = getFileExtension(file.getOriginalFilename());
+        String fileName = UUID.randomUUID().toString() + extension;
 
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(file.getContentType());
@@ -217,7 +219,8 @@ public class VideoServiceImpl implements VideoService {
         }
 
         // 새 이미지 업로드
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        String extension = getFileExtension(file.getOriginalFilename());
+        String fileName = UUID.randomUUID().toString() + extension;
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(file.getContentType());
         metadata.setContentLength(file.getSize());
@@ -268,5 +271,12 @@ public class VideoServiceImpl implements VideoService {
         return videoRepository.findById(videoId)
                 .map(Video::getUnits)
                 .orElseThrow(() -> new RuntimeException("Video not found"));
+    }
+
+    private String getFileExtension(String originalFilename) {
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            return "";
+        }
+        return originalFilename.substring(originalFilename.lastIndexOf("."));
     }
 }

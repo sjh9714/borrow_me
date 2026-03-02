@@ -46,11 +46,17 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date validity = new Date(now.getTime() + jwtConfig.getExpiration());
 
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        Claims claims;
+        try {
+            claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            // 만료된 토큰에서도 claims 추출 가능
+            claims = e.getClaims();
+        }
 
         return Jwts.builder()
                 .setClaims(claims)

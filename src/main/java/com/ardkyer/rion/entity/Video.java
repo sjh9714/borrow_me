@@ -97,25 +97,12 @@ public class Video {
         if (availableQuantity == null) {
             availableQuantity = totalQuantity;
         }
-        initializeItemUnits();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
         updateReservationStatus();
-    }
-
-    private void initializeItemUnits() {
-        if (units.isEmpty() && totalQuantity != null && totalQuantity > 0) {  // units를 units로 변경
-            for (int i = 0; i < totalQuantity; i++) {
-                ItemUnit unit = new ItemUnit();
-                unit.setVideo(this);
-                unit.setUnitNumber(i + 1);
-                unit.setStatus(ItemStatus.AVAILABLE);
-                units.add(unit);  // units를 units로 변경
-            }
-        }
     }
 
     public void updateReservationStatus() {

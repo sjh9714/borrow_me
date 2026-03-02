@@ -48,7 +48,7 @@ public class FollowController {
         try {
             String username = ((UserDetails) authentication.getPrincipal()).getUsername();
             User follower = userService.findByUsername(username);
-            User followed = userService.findByUsername(followedId.toString()); // 여기를 적절히 수정해야 할 수 있습니다.
+            User followed = userService.findById(followedId);
             followService.unfollowUser(follower, followed);
             return ResponseEntity.ok().body(Map.of("success", true, "message", "Successfully unfollowed user"));
         } catch (Exception e) {

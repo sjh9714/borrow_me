@@ -31,8 +31,10 @@ public class ReplyService {
 
         Reply savedReply = replyRepository.save(reply);
 
-        // 댓글 작성자에게 알림 생성
-        notificationService.createReplyNotification(parentComment.getUser(), savedReply);
+        // 자신의 댓글이 아닌 경우에만 알림 생성
+        if (!parentComment.getUser().getId().equals(user.getId())) {
+            notificationService.createReplyNotification(parentComment.getUser(), savedReply);
+        }
 
         return savedReply;
     }

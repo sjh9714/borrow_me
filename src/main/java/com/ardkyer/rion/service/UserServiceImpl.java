@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("ardkyerspring2")
+    @Value("${spring.cloud.aws.s3.bucket}")
     private String bucketName;
 
     @Autowired
@@ -224,7 +224,12 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String fileName = "avatars/" + UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        String extension = "";
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String fileName = "avatars/" + UUID.randomUUID().toString() + extension;
 
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(file.getContentType());

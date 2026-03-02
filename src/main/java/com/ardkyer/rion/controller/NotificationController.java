@@ -38,10 +38,19 @@ public class NotificationController {
 
     // 특정 알림을 읽음 상태로 표시하는 메서드
     @PutMapping("/read/{id}")
-    public Map<String, Object> readNotification(@PathVariable Long id) {
+    public Map<String, Object> readNotification(@PathVariable Long id,
+                                                 @AuthenticationPrincipal PrincipalDetails principalDetails) {
         Map<String, Object> response = new HashMap<>();
         try {
             Notification notification = notificationService.getNotification(id);
+
+            // 알림 소유자 검증
+            if (!notification.getUser().getId().equals(principalDetails.getUser().getId())) {
+                response.put("success", false);
+                response.put("message", "Unauthorized");
+                return response;
+            }
+
             notificationService.markAsRead(id); // 알림 읽음 처리
 
             response.put("success", true);
