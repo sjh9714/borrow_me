@@ -16,60 +16,53 @@
 
 ### 레이어드 아키텍처
 
-```
-Client (React)
-    │
-    ▼
-┌──────────────────────────────────────────────┐
-│  Controller Layer  (11개 REST Controller)     │
-│  - 요청/응답 처리, 입력 검증 (@Valid)          │
-│  - 인증/인가 확인                              │
-├──────────────────────────────────────────────┤
-│  Service Layer  (22개 Service)                │
-│  - 비즈니스 로직, @Transactional 관리          │
-│  - 읽기 전용 메서드: @Transactional(readOnly)  │
-├──────────────────────────────────────────────┤
-│  Repository Layer  (14개 JPA Repository)      │
-│  - JOIN FETCH, 배치 쿼리, Pessimistic Lock    │
-├──────────────────────────────────────────────┤
-│  Entity Layer  (14개 Domain Model)            │
-│  - JPA 매핑, 연관관계, 상태 관리               │
-└──────────────────────────────────────────────┘
-         │                          │
-    ┌────┘                          └────┐
-    ▼                                    ▼
- MySQL 8.0                          AWS S3
- (상품, 사용자, 예약 등)              (상품 이미지)
+```mermaid
+flowchart TD
+    Client["Client (React)"]
+
+    subgraph App["Spring Boot Application"]
+        direction TB
+        CL["Controller Layer  (11개 REST Controller)\n요청/응답 처리, 입력 검증 @Valid\n인증/인가 확인"]
+        SL["Service Layer  (22개 Service)\n비즈니스 로직, @Transactional 관리\n읽기 전용: @Transactional(readOnly)"]
+        RL["Repository Layer  (14개 JPA Repository)\nJOIN FETCH, 배치 쿼리, Pessimistic Lock"]
+        EL["Entity Layer  (14개 Domain Model)\nJPA 매핑, 연관관계, 상태 관리"]
+
+        CL --> SL --> RL --> EL
+    end
+
+    Client --> CL
+    EL --> MySQL[("MySQL 8.0\n상품, 사용자, 예약")]
+    SL --> S3["AWS S3\n상품 이미지"]
 ```
 
 ### JWT 인증 흐름
 
-```
-HTTP Request
-    │
-    ▼
-JwtAuthenticationFilter
-    │ Authorization: Bearer <token>
-    ▼
-JwtTokenProvider.validateToken()
-    │
-    ├─ 유효 → SecurityContext에 Authentication 설정 → Controller 진입
-    │
-    └─ 만료/무효 → 401 Unauthorized
+```mermaid
+flowchart TD
+    Request["HTTP Request"]
+    Filter["JwtAuthenticationFilter"]
+    Validate["JwtTokenProvider.validateToken()"]
+    Valid["SecurityContext에 Authentication 설정\nController 진입"]
+    Invalid["401 Unauthorized"]
+
+    Request --> Filter
+    Filter -->|"Authorization: Bearer token"| Validate
+    Validate -->|"유효"| Valid
+    Validate -->|"만료/무효"| Invalid
 ```
 
 ### 주요 엔티티 관계
 
-```
-User ──< Product (상품)
- │          │
- │          ├──< Reservation (예약)
- │          ├──< Comment ──< Reply (답글)
- │          ├──< Like
- │          └──<> Hashtag (M:N)
- │
- ├──< Follow (팔로워/팔로잉)
- └──< Notification (알림)
+```mermaid
+erDiagram
+    User ||--o{ Product : "소유"
+    User ||--o{ Follow : "팔로워/팔로잉"
+    User ||--o{ Notification : "수신"
+    Product ||--o{ Reservation : "예약"
+    Product ||--o{ Comment : "댓글"
+    Comment ||--o{ Reply : "답글"
+    Product ||--o{ Like : "좋아요"
+    Product }o--o{ Hashtag : "M:N 태깅"
 ```
 
 ---
