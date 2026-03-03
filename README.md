@@ -55,14 +55,95 @@ flowchart TD
 
 ```mermaid
 erDiagram
-    User ||--o{ Product : "소유"
-    User ||--o{ Follow : "팔로워/팔로잉"
-    User ||--o{ Notification : "수신"
-    Product ||--o{ Reservation : "예약"
-    Product ||--o{ Comment : "댓글"
-    Comment ||--o{ Reply : "답글"
-    Product ||--o{ Like : "좋아요"
-    Product }o--o{ Hashtag : "M:N 태깅"
+    USER {
+        bigint id PK
+        varchar username UK
+        varchar email UK
+        varchar password_hash
+        boolean email_verified
+        datetime created_at
+    }
+    PRODUCT {
+        bigint id PK
+        bigint user_id FK
+        varchar title
+        varchar image_url
+        int total_quantity
+        int available_quantity
+        enum reservation_status
+        datetime created_at
+    }
+    RESERVATION {
+        bigint id PK
+        bigint product_id FK
+        bigint user_id FK
+        int quantity
+        enum status
+        datetime rental_start_date
+        datetime rental_end_date
+    }
+    COMMENT {
+        bigint id PK
+        bigint product_id FK
+        bigint user_id FK
+        text content
+        int like_count
+        datetime created_at
+    }
+    REPLY {
+        bigint id PK
+        bigint comment_id FK
+        bigint user_id FK
+        varchar content
+        datetime created_at
+    }
+    LIKES {
+        bigint id PK
+        bigint product_id FK
+        bigint user_id FK
+        datetime created_at
+    }
+    FOLLOW {
+        bigint id PK
+        bigint follower_id FK
+        bigint followed_id FK
+        datetime created_at
+    }
+    HASHTAG {
+        bigint id PK
+        varchar name UK
+    }
+    PRODUCT_HASHTAGS {
+        bigint product_id FK
+        bigint hashtag_id FK
+    }
+    NOTIFICATION {
+        bigint id PK
+        bigint user_id FK
+        bigint product_id FK
+        bigint comment_id FK
+        bigint reply_id FK
+        enum type
+        boolean is_read
+        datetime created_at
+    }
+
+    USER ||--o{ PRODUCT : "소유"
+    USER ||--o{ RESERVATION : "신청"
+    USER ||--o{ COMMENT : "작성"
+    USER ||--o{ LIKES : "좋아요"
+    USER ||--o{ FOLLOW : "팔로우"
+    USER ||--o{ NOTIFICATION : "수신"
+    USER ||--o{ REPLY : "작성"
+    PRODUCT ||--o{ RESERVATION : "예약"
+    PRODUCT ||--o{ COMMENT : "댓글"
+    PRODUCT ||--o{ LIKES : "좋아요"
+    PRODUCT ||--o{ NOTIFICATION : "알림"
+    PRODUCT ||--o{ PRODUCT_HASHTAGS : "태깅"
+    HASHTAG ||--o{ PRODUCT_HASHTAGS : "태깅"
+    COMMENT ||--o{ REPLY : "답글"
+    COMMENT ||--o{ NOTIFICATION : "알림"
+    REPLY ||--o{ NOTIFICATION : "알림"
 ```
 
 ---
