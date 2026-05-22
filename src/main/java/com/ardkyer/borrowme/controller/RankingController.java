@@ -41,7 +41,7 @@ public class RankingController {
 
         Set<Long> followedIds = Collections.emptySet();
         if (currentUser != null) {
-            followedIds = followService.getFollowedUserIds(currentUser, topUsers);
+            followedIds = followService.getFollowedIds(currentUser, topUsers);
         }
 
         for (User user : topUsers) {

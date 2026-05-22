@@ -115,4 +115,3 @@ public class Product {
         return availableQuantity != null && availableQuantity > 0;
     }
 }
-

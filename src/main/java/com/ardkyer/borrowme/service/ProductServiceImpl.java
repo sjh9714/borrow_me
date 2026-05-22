@@ -92,7 +92,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Optional<Product> getProductById(Long id) {
-        return productRepository.findById(id);
+        return productRepository.findByIdWithUserAndHashtags(id);
     }
 
     @Override
@@ -185,12 +185,12 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> searchProducts(String query) {
-        return productRepository.findByTitleContainingOrDescriptionContainingOrUserUsernameContaining(query, query, query);
+        return productRepository.searchByKeywordWithDetails(query);
     }
 
     @Override
     public List<Product> searchProductsByHashtags(Set<String> hashtags) {
-        return productRepository.findByHashtagsNameIn(hashtags);
+        return productRepository.findByHashtagsNameInWithDetails(hashtags);
     }
 
     @Override

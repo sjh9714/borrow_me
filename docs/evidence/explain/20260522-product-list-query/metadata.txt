@@ -1,0 +1,16 @@
+BorrowMe product-list query EXPLAIN evidence
+
+Date: 2026-05-22
+Scope: current-code evidence only
+Environment: MySQL 8.0 Testcontainers via ProductQueryTest
+Fixture: ProductQueryTest seeds 20 products, 20 users, 2 hashtags
+Command:
+  ./gradlew test --tests ProductQueryTest.productListQuery_shouldExposeExplainPlanForEvidence --no-daemon
+
+Interpretation boundary:
+  This artifact preserves the current query shape that ProductQueryTest checks with EXPLAIN.
+  It is not a before/after EXPLAIN comparison and it is not a latency, throughput, row-estimate, or index-usage claim.
+  The original before/after EXPLAIN output from the README-era performance work is still not preserved.
+
+Git working tree:
+  Captured while the portfolio evidence branch had uncommitted tracked and untracked evidence/doc changes.

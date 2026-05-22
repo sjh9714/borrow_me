@@ -13,6 +13,7 @@ import { BASE_URL, TEST_PASSWORD, login, authHeaders } from './helpers.js';
 
 const reserveSuccess = new Counter('reserve_success');
 const reserveFail = new Counter('reserve_fail');
+const unexpectedReserveError = new Counter('unexpected_reserve_error');
 
 export const options = {
   scenarios: {
@@ -25,8 +26,24 @@ export const options = {
   },
   thresholds: {
     http_req_duration: ['p(95)<2000'],
+    reserve_success: ['count==50'],
+    reserve_fail: ['count==50'],
+    unexpected_reserve_error: ['count==0'],
   },
 };
+
+function isExpectedStockFailure(res) {
+  if (res.status !== 409) {
+    return false;
+  }
+
+  try {
+    const body = JSON.parse(res.body);
+    return body.message === '재고가 부족합니다.';
+  } catch (e) {
+    return false;
+  }
+}
 
 export function setup() {
   // 동시 예약 대상 상품 ID 조회
@@ -57,6 +74,10 @@ export function setup() {
     }
   }
 
+  if (tokens.length < 100) {
+    throw new Error(`Expected 100 login tokens, collected ${tokens.length}`);
+  }
+
   console.log(
     `Setup complete: productId=${targetProduct.id}, stock=${targetProduct.availableQuantity}, users=${tokens.length}`
   );
@@ -78,14 +99,19 @@ export default function (data) {
     { headers: authHeaders(token) }
   );
 
-  const success = check(res, {
-    'status is 200 or 400': (r) => r.status === 200 || r.status === 400,
+  const expectedStockFailure = isExpectedStockFailure(res);
+
+  check(res, {
+    'status is 200 or expected stock failure': (r) =>
+      r.status === 200 || expectedStockFailure,
   });
 
   if (res.status === 200) {
     reserveSuccess.add(1);
-  } else {
+  } else if (expectedStockFailure) {
     reserveFail.add(1);
+  } else {
+    unexpectedReserveError.add(1);
   }
 }
 
@@ -96,15 +122,21 @@ export function teardown(data) {
     headers: authHeaders(token),
   });
 
-  if (res.status === 200) {
-    const product = JSON.parse(res.body);
-    console.log(`\n========== 동시 예약 테스트 결과 ==========`);
-    console.log(`초기 재고: ${data.initialStock}`);
-    console.log(`최종 재고: ${product.availableQuantity}`);
-    console.log(
-      `예약된 수량: ${data.initialStock - product.availableQuantity}`
+  if (res.status !== 200) {
+    throw new Error(`Final product fetch failed: ${res.status} ${res.body}`);
+  }
+
+  const product = JSON.parse(res.body);
+  console.log(`\n========== 동시 예약 테스트 결과 ==========`);
+  console.log(`초기 재고: ${data.initialStock}`);
+  console.log(`최종 재고: ${product.availableQuantity}`);
+  console.log(`예약된 수량: ${data.initialStock - product.availableQuantity}`);
+  console.log(`상태: ${product.status}`);
+  console.log(`==========================================\n`);
+
+  if (product.availableQuantity !== 0) {
+    throw new Error(
+      `Expected final stock to be 0, got ${product.availableQuantity}`
     );
-    console.log(`상태: ${product.status}`);
-    console.log(`==========================================\n`);
   }
 }
