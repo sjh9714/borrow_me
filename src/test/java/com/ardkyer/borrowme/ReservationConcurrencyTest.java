@@ -32,6 +32,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Testcontainers
@@ -75,9 +76,10 @@ class ReservationConcurrencyTest {
     @BeforeEach
     void setUp() {
         transactionTemplate.execute(status -> {
-            reservationRepository.deleteAll();
-            productRepository.deleteAll();
+            entityManager.createQuery("DELETE FROM Reservation").executeUpdate();
+            entityManager.createQuery("DELETE FROM Product").executeUpdate();
             entityManager.createQuery("DELETE FROM User").executeUpdate();
+            entityManager.clear();
             return null;
         });
 
@@ -132,6 +134,7 @@ class ReservationConcurrencyTest {
 
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failCount = new AtomicInteger(0);
+        List<Throwable> unexpectedFailures = Collections.synchronizedList(new ArrayList<>());
 
         List<Future<?>> futures = new ArrayList<>();
 
@@ -149,8 +152,17 @@ class ReservationConcurrencyTest {
                         return null;
                     });
                     successCount.incrementAndGet();
+                } catch (IllegalStateException e) {
+                    if ("재고가 부족합니다.".equals(e.getMessage())) {
+                        failCount.incrementAndGet();
+                    } else {
+                        unexpectedFailures.add(e);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    unexpectedFailures.add(e);
                 } catch (Exception e) {
-                    failCount.incrementAndGet();
+                    unexpectedFailures.add(e);
                 }
             }));
         }
@@ -161,7 +173,11 @@ class ReservationConcurrencyTest {
         for (Future<?> future : futures) {
             try {
                 future.get();
-            } catch (Exception ignored) {
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                unexpectedFailures.add(e);
+            } catch (Exception e) {
+                unexpectedFailures.add(e);
             }
         }
         executor.shutdown();
@@ -171,9 +187,33 @@ class ReservationConcurrencyTest {
                 productRepository.findById(productId).orElseThrow()
         );
 
+        assertThat(unexpectedFailures)
+                .as("동시 예약 실패는 재고 부족 예외만 허용합니다.")
+                .isEmpty();
         assertThat(successCount.get()).isEqualTo(50);
         assertThat(failCount.get()).isEqualTo(50);
+        assertThat(reservationRepository.count()).isEqualTo(50);
         assertThat(finalProduct.getAvailableQuantity()).isEqualTo(0);
         assertThat(finalProduct.getReservationStatus()).isEqualTo(Product.ReservationStatus.OUT_OF_STOCK);
+    }
+
+    @Test
+    @DisplayName("재고 부족으로 예약 실패 시 예약 row와 재고가 변경되지 않음")
+    void failedReservation_shouldNotChangeStockOrCreateReservation() {
+        assertThatThrownBy(() -> transactionTemplate.execute(status -> {
+            Product product = entityManager.find(Product.class, productId);
+            User user = entityManager.find(User.class, userIds.get(0));
+            reservationService.reserve(product, user, 51);
+            return null;
+        })).isInstanceOf(IllegalStateException.class)
+                .hasMessage("재고가 부족합니다.");
+
+        Product finalProduct = transactionTemplate.execute(status ->
+                productRepository.findById(productId).orElseThrow()
+        );
+
+        assertThat(reservationRepository.count()).isZero();
+        assertThat(finalProduct.getAvailableQuantity()).isEqualTo(50);
+        assertThat(finalProduct.getReservationStatus()).isEqualTo(Product.ReservationStatus.AVAILABLE);
     }
 }

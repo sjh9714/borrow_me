@@ -15,10 +15,10 @@ public interface FollowService {
     void unfollowUser(User follower, User followed);
     boolean isFollowing(User follower, User followed);
     Set<Long> getFollowedUserIds(User follower, List<User> candidates);
+    Set<Long> getFollowedIds(User follower, List<User> candidates);
     List<User> getFollowers(User user);
     List<User> getFollowing(User user);
     long getFollowerCount(User user);
     long getFollowingCount(User user);
     boolean toggleFollow(User follower, User followed);
 }
-

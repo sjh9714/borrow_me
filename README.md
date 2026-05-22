@@ -1,6 +1,8 @@
 # BorrowMe
 
-BorrowMe는 **가톨릭대학교 GGUM 해커톤에서 시작한 11인 팀 프로젝트**로, 대학생 간 물건 대여 흐름을 다루는 Spring Boot REST API입니다. 상품 등록, 이미지 업로드, 예약, 팔로우, 댓글/답글, 좋아요, 검색, 랭킹, 알림, 이메일 인증을 하나의 백엔드 프로젝트 안에서 구현했습니다.
+![CI](https://github.com/sjh9714/borrow_me/actions/workflows/ci.yml/badge.svg)
+
+BorrowMe는 **가톨릭대학교 GGUM 해커톤에서 시작한 11인 팀 프로젝트**로, 대학생 간 물건 대여 흐름을 다루는 Spring Boot REST API입니다. 팀에서는 상품 등록, 이미지 업로드, 예약, 팔로우, 댓글/답글, 좋아요, 검색, 랭킹, 알림, 이메일 인증을 하나의 백엔드 프로젝트 안에서 구현했습니다.
 
 ## 프로젝트 맥락
 
@@ -18,6 +20,22 @@ BorrowMe는 **가톨릭대학교 GGUM 해커톤에서 시작한 11인 팀 프로
 ## 문제 의식
 
 대여 서비스는 단순 CRUD보다 더 많은 상태 관리를 요구합니다. 상품 재고를 동시에 예약할 때 수량이 깨지지 않아야 하고, 상품·사용자·해시태그·팔로우 정보를 함께 보여줄 때 N+1 쿼리를 줄여야 합니다. 이 저장소는 예약 정합성과 조회 성능 개선을 포트폴리오 주제로 정리합니다.
+
+## 이 레포가 증명하는 것
+
+| 상태 | 항목 | 근거 |
+| --- | --- | --- |
+| 원본 측정 기록 | 상품 목록 p95 1,010ms -> 23ms, 처리량 30 req/s -> 253 req/s | 원본 README 기록 기준, raw artifact 없음 |
+| 현재 로컬 재실행 snapshot | 상품 목록 product-listing p95 50.5ms, HTTP 실패율 0.00%, checks 20,985 / 20,985 성공 | `docs/evidence/k6/20260522T070732Z-product-listing/` |
+| 현재 로컬 재실행 snapshot | 검색 search p95 133.03ms, p99 182.01ms, HTTP 실패율 0.00%, checks 10,976 / 10,976 성공 | `docs/evidence/k6/20260522T073727Z-search/` |
+| 현재 로컬 재실행 snapshot | 동시 예약 concurrent-reserve 성공 50건 / 재고 부족 실패 50건 / 최종 재고 0 | `docs/evidence/k6/20260522T074050Z-concurrent-reserve/` |
+| 자동 회귀 검증 | 상품 목록 원본 쿼리 기록 201회 -> 3회, 현재 상품 목록/검색/단건 조회/recent search SQL 회귀 guard와 현재 query shape EXPLAIN 확인 | 원본 README 기록 + `ProductQueryTest` query-count/concurrency/EXPLAIN guard |
+| 시나리오 검증 | 인증 `GET /api/products`에서 팔로우 여부 true/false 응답과 SQL 5회 이하 query-count guard | `ProductQueryTest.getProductsApi_withAuthentication_shouldBatchFollowLookup` |
+| 시나리오 검증 | ranking data path에서 상위 사용자, 최근 상품, 팔로우 여부 조합을 SQL 5회 이하로 유지 | `ProductQueryTest.rankingDataPath_shouldKeepQueryCountBounded` |
+| 시나리오 검증 | `GET /ranking` no-op view 기반 handler/model assembly에서 topUsers/currentUser/recentProducts/followed flag를 구성하고 SQL 6회 이하로 유지. 실제 템플릿 렌더링 성능 benchmark는 아님 | `ProductQueryTest.rankingPage_shouldRenderModelAndKeepQueryCountBounded` |
+| 시나리오 검증 | 재고 50개 상품에 100명 동시 예약 시 성공 50건, 최종 재고 0 / 재고 부족 실패 시 row·재고 불변 | `ReservationConcurrencyTest` |
+| 시나리오 검증 | Flyway baseline schema migration과 migration history 생성 검증 | `V1__baseline_schema.sql`, `FlywayMigrationTest` |
+| 문서화 완료 | schema migration 전략 문서화, 반복 측정 환경 보존, 운영 성능 claim 분리 | `docs/MIGRATION_STRATEGY.md`, `docs/LIMITATIONS.md` |
 
 ## 주요 기능
 
@@ -38,7 +56,7 @@ BorrowMe는 **가톨릭대학교 GGUM 해커톤에서 시작한 11인 팀 프로
 | --- | --- |
 | Backend | Java 17, Spring Boot 3.1.5, Spring Web, Validation |
 | Security | Spring Security, JWT, BCrypt |
-| Persistence | Spring Data JPA, MySQL, H2 for tests |
+| Persistence | Spring Data JPA, MySQL, H2 for lightweight tests, MySQL Testcontainers for evidence tests |
 | Storage / Mail | AWS S3, Spring Mail |
 | Docs / Test | springdoc-openapi, JUnit 5, Testcontainers, k6 |
 | Build | Gradle |
@@ -73,10 +91,10 @@ src/main/java/com/ardkyer/borrowme/
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | S3 업로드 |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | Gmail SMTP |
 
-테스트는 Gradle로 실행합니다.
+테스트는 Java 17에서 Gradle로 실행합니다. Gradle 자체가 최신 JDK에서 먼저 뜨면 buildscript 분석 단계에서 실패할 수 있으므로, 로컬에서는 JDK 17을 명시하는 편이 안전합니다.
 
 ```bash
-./gradlew test
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew test
 ```
 
 ## 성능 테스트
@@ -84,25 +102,59 @@ src/main/java/com/ardkyer/borrowme/
 `k6/`에는 상품 목록, 검색, 동시 예약 시나리오가 정리되어 있습니다.
 
 ```bash
-k6 run k6/test-product-listing.js
-k6 run k6/test-search.js
-k6 run k6/test-concurrent-reserve.js
+BASE_URL=http://localhost:5000 k6 run k6/test-product-listing.js
+BASE_URL=http://localhost:5000 k6 run k6/test-search.js
+BASE_URL=http://localhost:5000 k6 run k6/test-concurrent-reserve.js
 ```
 
-### 성능·정합성 하이라이트
+### 원본 기록 기반 성능·정합성 하이라이트 (현재 재측정 아님)
 
-원본 README에 남아 있던 k6와 쿼리 개선 기록 기준입니다.
+원본 README에 남아 있던 k6와 쿼리 개선 기록 기준입니다. 상품 목록과 검색의 과거 k6 raw artifact는
+보존되어 있지 않으므로, 현재 repo에서는 query-count guard와 재실행용 k6 시나리오로 회귀를 방지합니다.
 
-| 테스트 | 지표 | Before | After | 개선 |
+| 테스트 | 지표 | Before | After | 근거 / 주의 |
 | --- | --- | --- | --- | --- |
-| 상품 목록 조회 (30 VU, 30초) | p95 응답시간 | 1,010ms | 23ms | 44배 감소 |
-| 상품 목록 조회 (30 VU, 30초) | 처리량 | 30 req/s | 253 req/s | 8.4배 증가 |
-| 상품 목록 조회 (상품 100개) | DB 쿼리 | 201회 | 3회 | JOIN FETCH + 배치 조회 |
+| 상품 목록 조회 (30 VU, 30초) | p95 응답시간 | 1,010ms | 23ms | 원본 README 기록, 별도 raw artifact 없음, 현재 재측정 아님 |
+| 상품 목록 조회 (30 VU, 30초) | 처리량 | 30 req/s | 253 req/s | 원본 README 기록, 별도 raw artifact 없음, 현재 재측정 아님 |
+| 상품 목록 조회 (상품 100개) | DB 쿼리 | 201회 | 3회 | JOIN FETCH + query-count guard |
 | 동시 예약 (100 VU, 재고 50개) | 예약 성공 | 100건 (전부 성공) | 50건 | 재고 초과 예약 방지 |
-| 동시 예약 (100 VU, 재고 50개) | 최종 재고 | 불일치 | 0 | 정합성 100% |
-| 검색 (30 VU, 30초) | p95 응답시간 | - | 72ms | 에러율 0% |
+| 동시 예약 (100 VU, 재고 50개) | 최종 재고 | 불일치 | 0 | 재고 초과 예약 방지 시나리오 검증 |
+| 검색 (30 VU, 30초) | p95 응답시간 | - | 72ms | 원본 README 기록, 별도 raw artifact 없음, 현재 재측정 아님 |
+
+새 성능 수치를 주장하려면 k6 실행 로그, summary, dataset 조건을 함께 보존한 뒤 이 표를 갱신합니다.
+
+### 현재 로컬 재실행 snapshot
+
+2026-05-22에 해당 실행 시점의 worktree와 `k6/setup-data.sql` fixture로 상품 목록 `product-listing`, 검색 `search`,
+동시 예약 `concurrent-reserve` 시나리오를 재실행했고, raw artifact를 보존했습니다.
+
+| 시나리오 | 조건 | 핵심 결과 | raw artifact |
+| --- | --- | --- | --- |
+| product-listing | 30 VU, 30초 | p95 50.5ms, HTTP 실패율 0.00%, checks 20,985 / 20,985 성공 | `docs/evidence/k6/20260522T070732Z-product-listing/` |
+| search | 30 VU, 30초 | p95 133.03ms, p99 182.01ms, HTTP 실패율 0.00%, checks 10,976 / 10,976 성공 | `docs/evidence/k6/20260522T073727Z-search/` |
+| concurrent-reserve | 100 VU, 재고 50개 | 예약 성공 50건, 재고 부족 실패 50건, 최종 재고 0, 예상 밖 오류 0건 | `docs/evidence/k6/20260522T074050Z-concurrent-reserve/` |
+
+이 snapshot은 해당 실행 시점의 worktree가 각 k6 threshold를 통과한다는 근거입니다. 원본 README의 Before/After p95
+23ms나 검색 p95 72ms를 같은 조건으로 재현했다는 뜻은 아니며, 운영 성능 claim으로 확장하지 않습니다.
+artifact metadata에는 당시 `git status`가 포함되어 있으며, clean commit 기준 반복 측정은 추가 측정 예정입니다.
 
 예약 race condition은 `@Lock(PESSIMISTIC_WRITE)`와 `SELECT FOR UPDATE`로 행 레벨 잠금을 적용했고, Hibernate L1 캐시가 잠금을 우회하지 않도록 `entityManager.detach()`를 함께 사용했습니다.
+검색 recent search는 `(user_id, keyword)` unique constraint와 MySQL upsert로 같은 사용자/키워드 동시 요청이 중복 row를 만들지 않도록 보강했습니다.
+
+## 증거 문서
+
+| 문서 | 내용 |
+| --- | --- |
+| [docs/DESIGN.md](docs/DESIGN.md) | 예약 정합성, 상품 목록 조회 경로, 팀 프로젝트 주장 경계 |
+| [docs/PERF_RESULT.md](docs/PERF_RESULT.md) | 상품 목록/예약 성능 관련 기록 index |
+| [docs/PRODUCT_LIST_PERF.md](docs/PRODUCT_LIST_PERF.md) | 상품 목록 조회 N+1 개선, p95/처리량/쿼리 수 Before/After, 현재 query shape EXPLAIN artifact |
+| [docs/RESERVATION_CONSISTENCY.md](docs/RESERVATION_CONSISTENCY.md) | 재고 50개 / 100 VU 동시 예약 정합성 개선 |
+| [docs/TESTING.md](docs/TESTING.md) | Product 목록/검색 query guard와 reservation concurrency Testcontainers 검증 범위 |
+| [docs/TEAM_CONTRIBUTION.md](docs/TEAM_CONTRIBUTION.md) | 11인 팀 프로젝트에서 본인 담당 범위와 포트폴리오 주장 경계 |
+| [docs/MIGRATION_STRATEGY.md](docs/MIGRATION_STRATEGY.md) | Flyway baseline validation과 아직 주장하지 않는 migration 범위 |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | 상품 목록 성능 회귀, 예약 재고 불일치, 검색 성능 claim 확인 절차 |
+| [docs/LIMITATIONS.md](docs/LIMITATIONS.md) | query-count 자동 회귀 테스트, Flyway, 운영 성능 claim의 한계 |
+| [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) | 면접에서 설명할 핵심 질문과 안전한 답변 |
 
 ## 참고 사항
 

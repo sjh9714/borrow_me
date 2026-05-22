@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class RecentSearchServiceImpl implements RecentSearchService {
@@ -18,30 +17,25 @@ public class RecentSearchServiceImpl implements RecentSearchService {
     private RecentSearchRepository recentSearchRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecentSearch> getRecentSearches(User user) {
         return recentSearchRepository.findByUserOrderBySearchTimeDesc(user);
     }
 
     @Override
+    @Transactional
     public void addOrUpdateRecentSearch(User user, String keyword) {
-        Optional<RecentSearch> existingSearch = recentSearchRepository.findByUserAndKeyword(user, keyword);
-        if (existingSearch.isPresent()) {
-            RecentSearch recentSearch = existingSearch.get();
-            recentSearch.setSearchTime(LocalDateTime.now());
-            recentSearchRepository.save(recentSearch);
-        } else {
-            RecentSearch newSearch = new RecentSearch();
-            newSearch.setUser(user);
-            newSearch.setKeyword(keyword);
-            newSearch.setSearchTime(LocalDateTime.now());
-            recentSearchRepository.save(newSearch);
-        }
+        recentSearchRepository.upsertByUserIdAndKeyword(
+                user.getId(),
+                keyword,
+                LocalDateTime.now()
+        );
     }
 
     @Override
+    @Transactional
     public void deleteRecentSearch(User user, String keyword) {
-        Optional<RecentSearch> existingSearch = recentSearchRepository.findByUserAndKeyword(user, keyword);
-        existingSearch.ifPresent(recentSearchRepository::delete);
+        recentSearchRepository.deleteByUserAndKeyword(user, keyword);
     }
 
     @Override

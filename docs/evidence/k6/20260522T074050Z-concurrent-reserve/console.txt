@@ -1,0 +1,96 @@
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+     execution: local
+        script: k6/test-concurrent-reserve.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 100 max VUs, 1m30s max duration (incl. graceful stop):
+              * concurrent_reserve: 1 iterations for each of 100 VUs (maxDuration: 1m0s, gracefulStop: 30s)
+
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+
+Run                  [ 100% ] setup()
+concurrent_reserve   [   0% ]
+time="2026-05-22T16:40:59+09:00" level=info msg="Setup complete: productId=304, stock=50, users=100" source=console
+time="2026-05-22T16:40:59+09:00" level=info msg="\n========== 동시 예약 테스트 결과 ==========" source=console
+time="2026-05-22T16:40:59+09:00" level=info msg="초기 재고: 50" source=console
+time="2026-05-22T16:40:59+09:00" level=info msg="최종 재고: 0" source=console
+time="2026-05-22T16:40:59+09:00" level=info msg="예약된 수량: 50" source=console
+time="2026-05-22T16:40:59+09:00" level=info msg="상태: OUT_OF_STOCK" source=console
+time="2026-05-22T16:40:59+09:00" level=info msg="==========================================\n" source=console
+
+
+  █ THRESHOLDS
+
+    http_req_duration
+    ✓ 'p(95)<2000' p(95)=347.08ms
+
+    reserve_fail
+    ✓ 'count==50' count=50
+
+    reserve_success
+    ✓ 'count==50' count=50
+
+    unexpected_reserve_error
+    ✓ 'count==0' count=0
+
+
+  █ TOTAL RESULTS
+
+    checks_total.......: 100     11.660979/s
+    checks_succeeded...: 100.00% 100 out of 100
+    checks_failed......: 0.00%   0 out of 100
+
+    ✓ status is 200 or expected stock failure
+
+    CUSTOM
+    reserve_fail...................: 50     5.83049/s
+    reserve_success................: 50     5.83049/s
+    unexpected_reserve_error.......: 0      0/s
+
+    HTTP
+    http_req_duration..............: avg=171.94ms min=11.79ms med=82.23ms max=355.22ms p(90)=339.54ms p(95)=347.08ms
+      { expected_response:true }...: avg=118.8ms  min=11.79ms med=79.31ms max=313.87ms p(90)=259.57ms p(95)=287.7ms
+    http_req_failed................: 24.63% 50 out of 203
+    http_reqs......................: 203    23.671788/s
+
+    EXECUTION
+    iteration_duration.............: avg=268.08ms min=72.76ms med=314.5ms max=355.59ms p(90)=349.12ms p(95)=352.03ms
+    iterations.....................: 100    11.660979/s
+    vus............................: 0      min=0         max=0
+    vus_max........................: 100    min=100       max=100
+
+    NETWORK
+    data_received..................: 163 kB 19 kB/s
+    data_sent......................: 54 kB  6.2 kB/s
+
+
+
+
+running (0m08.6s), 000/100 VUs, 100 complete and 0 interrupted iterations
+concurrent_reserve ✓ [ 100% ] 100 VUs  0m00.4s/1m0s  100/100 iters, 1 per VU

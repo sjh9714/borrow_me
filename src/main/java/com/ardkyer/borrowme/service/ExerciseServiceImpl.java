@@ -19,7 +19,7 @@ public class ExerciseServiceImpl implements ExerciseService{
     @Override
     @Transactional(readOnly = true)
     public List<Exercise> getAllExercises() {
-        return exerciseRepository.findAll();
+        return exerciseRepository.findAllWithHashtags();
     }
 
     @Override

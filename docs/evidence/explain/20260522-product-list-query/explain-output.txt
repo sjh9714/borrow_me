@@ -1,0 +1,23 @@
+Query:
+
+EXPLAIN
+SELECT DISTINCT p.id
+FROM products p
+LEFT JOIN `user` u ON p.user_id = u.id
+LEFT JOIN product_hashtags ph ON p.id = ph.product_id
+LEFT JOIN hashtags h ON ph.hashtag_id = h.id;
+
+Output captured from ProductQueryTest:
+
+| id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |
+| 1 | SIMPLE | p | null | index | PRIMARY,FKhqw0i9tv44oekhnpggx9lbix2 | FKhqw0i9tv44oekhnpggx9lbix2 | 8 | null | 1 | 100.0 | Using index; Using temporary |
+| 1 | SIMPLE | u | null | eq_ref | PRIMARY | PRIMARY | 8 | testdb.p.user_id | 1 | 100.0 | Using index; Distinct |
+| 1 | SIMPLE | ph | null | ref | FKo2160xnxw1pb58ciuur7hef90 | FKo2160xnxw1pb58ciuur7hef90 | 8 | testdb.p.id | 1 | 100.0 | Using index; Distinct |
+| 1 | SIMPLE | h | null | eq_ref | PRIMARY | PRIMARY | 8 | testdb.ph.hashtag_id | 1 | 100.0 | Using index; Distinct |
+
+Notes:
+
+- Table aliases map to `products p`, `user u`, `product_hashtags ph`, `hashtags h`.
+- This output is current-code evidence only.
+- Do not use this artifact as a benchmark or as proof of the historical before/after improvement.
