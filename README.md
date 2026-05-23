@@ -17,6 +17,23 @@ BorrowMe는 **가톨릭대학교 GGUM 해커톤에서 시작한 11인 팀 프로
 | 현재 검증 | Testcontainers query-count/concurrency guard와 local k6 snapshot artifact 보존 |
 | 주의 | 운영 성능 claim이 아니라 로컬 재실행 snapshot과 원본 README historical record를 분리해 설명 |
 
+## 전체 아키텍처
+
+![BorrowMe 전체 아키텍처](docs/assets/architecture/overall-architecture.svg)
+
+이 다이어그램은 후보자 담당 범위 중심으로 상품 목록 조회, 예약 정합성, 알림 흐름과
+Testcontainers MySQL 검증 경계를 단순화해 보여줍니다. 상세 설명은
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)에 정리했습니다.
+
+| 핵심 설계 판단 | 이유 | 검증/주장 경계 |
+| --- | --- | --- |
+| Product / Reservation / Notification 흐름 분리 | 목록 조회, 재고 차감, 알림 처리를 면접에서 독립적으로 설명하기 위함 | 구현된 API/service 흐름 기준 |
+| Reservation Service에서 Pessimistic Lock 사용 | 동시 예약 시 재고가 음수가 되지 않는 정합성이 우선 | Testcontainers 동시 예약 시나리오 검증 |
+| Product Service 조회 경로에 query-count guard 유지 | 상품 목록 N+1 회귀를 자동 테스트로 감시 | 현재 guard와 local k6 snapshot 범위 |
+| Testcontainers MySQL로 핵심 검증 수행 | MySQL 기준 query/concurrency 동작을 확인 | 운영 배포 토폴로지나 production SLO 주장 아님 |
+
+이 다이어그램은 구현된 핵심 흐름과 검증 대상 경계를 설명하기 위한 단순화된 구조도이며, 운영 배포 토폴로지나 production SLO를 주장하지 않습니다.
+
 ## 현재 clean repeat3 local snapshot
 
 2026-05-23에 clean commit 기준으로 `product-listing` k6 시나리오를 재실행하고
@@ -174,6 +191,7 @@ BASE_URL=http://localhost:5000 k6/run-with-evidence.sh concurrent-reserve
 | 문서 | 내용 |
 | --- | --- |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | 예약 정합성, 상품 목록 조회 경로, 팀 프로젝트 주장 경계 |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 전체 아키텍처 다이어그램과 상품/예약/알림 검증 경계 |
 | [`docs/PERF_RESULT.md`](docs/PERF_RESULT.md) | 원본 README 수치와 현재 local snapshot 해석 기준 |
 | [`docs/PRODUCT_LIST_PERF.md`](docs/PRODUCT_LIST_PERF.md) | 상품 목록 조회 N+1 개선과 p95/처리량/쿼리 수 기록 |
 | [`docs/RESERVATION_CONSISTENCY.md`](docs/RESERVATION_CONSISTENCY.md) | 재고 50개 / 100 VU 동시 예약 정합성 개선 |
