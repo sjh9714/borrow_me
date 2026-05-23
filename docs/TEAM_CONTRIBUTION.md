@@ -33,7 +33,8 @@ BorrowMe는 개인 프로젝트가 아니라 11인 해커톤 팀 프로젝트에
   Testcontainers + Hibernate statistics로 guard합니다.
 - 동시 예약 정합성: 재고 50개 / 100 VU에서 예약 성공 50건, 최종 재고 0.
 - recent search 동시 저장: 같은 사용자/키워드 동시 요청이 중복 row를 만들지 않는지 Testcontainers로 guard합니다.
-- k6 시나리오 artifact: 상품 목록, 검색, 동시 예약 local snapshot의 raw output과 metadata를 보존했습니다.
+- k6 시나리오 artifact: 상품 목록 clean repeat3 p95 358.1088ms, 검색, 동시 예약 local snapshot의 raw output과
+  metadata를 보존했습니다. 원본 README의 상품 목록 After p95 23ms와 별도 증거 범주입니다.
 
 ## 코드 담당 범위로만 설명하는 항목
 

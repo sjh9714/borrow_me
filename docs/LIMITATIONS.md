@@ -8,6 +8,7 @@
 | 항목 | 현재 상태 | 다음 보강 |
 | --- | --- | --- |
 | query-count 자동 회귀 테스트 | `ProductQueryTest`가 `getAllProductsWithDetails()` 조회 SQL 1회, security filter를 제외한 `GET /api/products` 응답 변환 경로의 SQL 3회 이하, 인증 `GET /api/products` 팔로우 여부 응답 경로의 SQL 5회 이하, ranking data path SQL 5회 이하, `GET /ranking` handler/model assembly SQL 6회 이하, bulk follow lookup SQL 1회, 상품 검색/해시태그 검색 결과 DTO 접근 SQL 1회, exercise hashtag DTO 변환 SQL 1회를 guard합니다. README의 전체 Before/After 수치 201회 -> 3회를 그대로 재실행하는 자동 k6 검증은 아직 없습니다. | 실제 템플릿 렌더링 성능과 반복 k6 측정 artifact 추가 |
+| 상품 목록 p95 해석 | 원본 README After p95 `23ms`는 historical original record이며 raw k6 artifact가 보존되어 있지 않습니다. 2026-05-23 p95 `358.1088ms`는 clean repeat3 local k6 snapshot으로 별도 보존했습니다. 두 값을 같은 조건의 재현이나 현재 개선 폭으로 비교하지 않습니다. | 같은 fixture와 실행 조건에서 반복 측정하고 원본 기록과 현재 snapshot을 계속 분리 |
 | EXPLAIN output | 원본 Before/After EXPLAIN 결과는 repository에 보존되어 있지 않습니다. 현재 코드 기준 EXPLAIN artifact는 `docs/evidence/explain/20260522-product-list-query/`에 보존했습니다. | 개선 전후 EXPLAIN output과 실행 환경을 함께 보존 |
 | 검색 성능 p95 | README의 검색 `p95 72ms`는 원본 README 기록이며 raw k6 artifact와 실행 환경이 보존되어 있지 않습니다. 2026-05-22 현재 코드 기준 local search snapshot은 별도 artifact로 보존했습니다. | 같은 fixture와 실행 조건에서 반복 측정하고 원본 기록과 현재 snapshot을 분리 |
 | Flyway baseline validation | 현재 schema baseline은 `V1__baseline_schema.sql`과 `FlywayMigrationTest`로 검증합니다. 다만 기존 production migration 이력을 모두 복원했다는 주장은 하지 않습니다. | 후속 schema 변경을 baseline 이후 migration으로 분리 |
