@@ -1,0 +1,151 @@
+{
+    "metrics": {
+        "vus": {
+            "value": 30,
+            "min": 30,
+            "max": 30
+        },
+        "data_sent": {
+            "count": 1022487,
+            "rate": 33209.2401655228
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 3563,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_reqs": {
+            "count": 3563,
+            "rate": 115.72227589177932
+        },
+        "iterations": {
+            "count": 3561,
+            "rate": 115.65731811693128
+        },
+        "http_req_duration": {
+            "p(90)": 284.76340000000005,
+            "p(95)": 358.1087999999999,
+            "avg": 147.94469463934863,
+            "min": 13.441,
+            "med": 121.597,
+            "max": 857.076,
+            "thresholds": {
+                "p(95)<500": false,
+                "p(99)<1000": false
+            }
+        },
+        "checks": {
+            "passes": 10683,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_waiting": {
+            "med": 120.972,
+            "max": 856.992,
+            "p(90)": 284.345,
+            "p(95)": 357.3463,
+            "avg": 147.43455823744043,
+            "min": 13.1
+        },
+        "vus_max": {
+            "value": 30,
+            "min": 30,
+            "max": 30
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "data_received": {
+            "count": 128924407,
+            "rate": 4187321.301161393
+        },
+        "http_req_blocked": {
+            "max": 4.843,
+            "p(90)": 0.007,
+            "p(95)": 0.011,
+            "avg": 0.02521246140892526,
+            "min": 0,
+            "med": 0.004
+        },
+        "http_req_sending": {
+            "p(90)": 0.025,
+            "p(95)": 0.05,
+            "avg": 0.04877799607072608,
+            "min": 0.002,
+            "med": 0.012,
+            "max": 22.634
+        },
+        "http_req_receiving": {
+            "avg": 0.4613584058377769,
+            "min": 0.02,
+            "med": 0.134,
+            "max": 34.372,
+            "p(90)": 0.7872000000000008,
+            "p(95)": 1.5854999999999992
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.016606230704462526,
+            "min": 0,
+            "med": 0,
+            "max": 4.788
+        },
+        "iteration_duration": {
+            "avg": 253.8724020581305,
+            "min": 116.173458,
+            "med": 226.620084,
+            "max": 961.894417,
+            "p(90)": 389.7465,
+            "p(95)": 465.009208
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 147.94469463934863,
+            "min": 13.441,
+            "med": 121.597,
+            "max": 857.076,
+            "p(90)": 284.76340000000005,
+            "p(95)": 358.1087999999999
+        }
+    },
+    "setup_data": {
+        "redaction": "setup_data JWT was redacted before committing evidence; k6 metrics and root_group are unchanged"
+    },
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "status is 200": {
+                    "passes": 3561,
+                    "fails": 0,
+                    "name": "status is 200",
+                    "path": "::status is 200",
+                    "id": "6210a8cd14cd70477eba5c5e4cb3fb5f"
+                },
+                "returns array": {
+                    "name": "returns array",
+                    "path": "::returns array",
+                    "id": "db97344e97f20078e39db9f214ed76aa",
+                    "passes": 3561,
+                    "fails": 0
+                },
+                "has products": {
+                    "name": "has products",
+                    "path": "::has products",
+                    "id": "bd20344dacb9319039907d7c96ed89b0",
+                    "passes": 3561,
+                    "fails": 0
+                }
+            },
+        "name": ""
+    }
+}

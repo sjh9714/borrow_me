@@ -12,7 +12,7 @@
 | 검색 성능 p95 | README의 검색 `p95 72ms`는 원본 README 기록이며 raw k6 artifact와 실행 환경이 보존되어 있지 않습니다. 2026-05-22 현재 코드 기준 local search snapshot은 별도 artifact로 보존했습니다. | 같은 fixture와 실행 조건에서 반복 측정하고 원본 기록과 현재 snapshot을 분리 |
 | Flyway baseline validation | 현재 schema baseline은 `V1__baseline_schema.sql`과 `FlywayMigrationTest`로 검증합니다. 다만 기존 production migration 이력을 모두 복원했다는 주장은 하지 않습니다. | 후속 schema 변경을 baseline 이후 migration으로 분리 |
 | Testcontainers 범위 | 상품 목록 query guard, 인증 상품 목록 follow-aware API guard, ranking data path/model assembly guard, bulk follow lookup guard, 상품 검색 query guard, 해시태그 검색 query guard, exercise hashtag query guard, 예약 동시성, 재고 부족 실패 시 재고/예약 row 불변성, Flyway baseline validation은 MySQL Testcontainers로 검증합니다. 모든 기능의 MySQL 기반 회귀 테스트가 완비됐다고 주장하지는 않습니다. | 실제 템플릿 렌더링과 운영 부하 측정까지 확장 |
-| 운영 성능 | 2026-05-22 product-listing/search/concurrent-reserve local snapshot은 raw artifact를 보존했지만 단일 local run입니다. 원본 Before/After 기록이나 장기 운영 성능, autoscaling 성능으로 확장하지 않습니다. | 실행 환경, dataset, 명령어, 원본 결과 파일을 함께 보존한 반복 측정 |
+| 운영 성능 | 2026-05-23 product-listing clean repeat3와 2026-05-22 product-listing/search/concurrent-reserve local snapshot은 raw artifact를 보존했지만 단일 local run입니다. 원본 Before/After 기록이나 장기 운영 성능, autoscaling 성능으로 확장하지 않습니다. | 실행 환경, dataset, 명령어, 원본 결과 파일을 함께 보존한 반복 측정 |
 
 ## 유지할 원칙
 

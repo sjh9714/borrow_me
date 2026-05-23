@@ -62,7 +62,17 @@ artifact_dir="docs/evidence/k6/${timestamp}-${scenario}"
 summary_file="${artifact_dir}/summary.json"
 console_file="${artifact_dir}/console.txt"
 metadata_file="${artifact_dir}/metadata.txt"
-command_display="BASE_URL=${base_url} k6 run ${script} --summary-export ${summary_file}"
+summary_trend_stats="avg,min,med,max,p(90),p(95),p(99)"
+command_display="BASE_URL=${base_url} k6 run ${script} --summary-export ${summary_file} --summary-trend-stats ${summary_trend_stats}"
+git_commit="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+git_status_before_artifact="$(git status --short 2>/dev/null || true)"
+if [[ -z "$git_status_before_artifact" ]]; then
+  git_clean_before_artifact="true"
+  git_status_before_artifact_display="(clean)"
+else
+  git_clean_before_artifact="false"
+  git_status_before_artifact_display="$git_status_before_artifact"
+fi
 
 mkdir -p "$artifact_dir"
 
@@ -72,7 +82,11 @@ mkdir -p "$artifact_dir"
   echo "script=${script}"
   echo "base_url=${base_url}"
   echo "command=${command_display}"
-  echo "git_commit=$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+  echo "git_commit=${git_commit}"
+  echo "git_clean_before_artifact=${git_clean_before_artifact}"
+  echo "git_status_before_artifact<<EOF"
+  echo "$git_status_before_artifact_display"
+  echo "EOF"
   echo "git_status_porcelain<<EOF"
   git status --short 2>/dev/null || true
   echo "EOF"
@@ -94,7 +108,7 @@ mkdir -p "$artifact_dir"
 } > "$metadata_file"
 
 set +e
-BASE_URL="$base_url" k6 run "$script" --summary-export "$summary_file" 2>&1 | tee "$console_file"
+BASE_URL="$base_url" k6 run "$script" --summary-export "$summary_file" --summary-trend-stats "$summary_trend_stats" 2>&1 | tee "$console_file"
 k6_status=${PIPESTATUS[0]}
 set -e
 
