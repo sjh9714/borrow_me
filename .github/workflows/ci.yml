@@ -70,6 +70,50 @@ jobs:
           docker run --rm -i -v "$PWD:/work" -w /work grafana/k6 inspect k6/test-product-listing.js >/dev/null
           docker run --rm -i -v "$PWD:/work" -w /work grafana/k6 inspect k6/test-search.js >/dev/null
           docker run --rm -i -v "$PWD:/work" -w /work grafana/k6 inspect k6/test-concurrent-reserve.js >/dev/null
+      - name: Check architecture docs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          readme = Path("README.md").read_text(encoding="utf-8")
+          required_readme = [
+              "## 전체 아키텍처",
+              "![BorrowMe 전체 아키텍처](docs/assets/architecture/overall-architecture.svg)",
+              "이 다이어그램은 구현된 핵심 흐름과 검증 대상 경계를 설명하기 위한 단순화된 구조도이며, 운영 배포 토폴로지나 production SLO를 주장하지 않습니다.",
+          ]
+          missing = [item for item in required_readme if item not in readme]
+          if missing:
+              print("README architecture section is missing required text:")
+              for item in missing:
+                  print(f"- {item}")
+              raise SystemExit(1)
+
+          asset_dir = Path("docs/assets/architecture")
+          required_assets = [
+              asset_dir / "overall-architecture.svg",
+              asset_dir / "overall-architecture.drawio",
+          ]
+          absent = [str(path) for path in required_assets if not path.exists()]
+          if absent:
+              print("Missing architecture assets:")
+              for path in absent:
+                  print(f"- {path}")
+              raise SystemExit(1)
+
+          banned = [
+              path
+              for path in asset_dir.rglob("*")
+              if path.is_file()
+              and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+          ]
+          if banned:
+              print("Architecture assets must remain SVG/drawio only:")
+              for path in banned:
+                  print(f"- {path}")
+              raise SystemExit(1)
+
+          print("OK: architecture docs checked")
+          PY
       - name: Test
         run: ./gradlew test --no-daemon
       - name: Build
