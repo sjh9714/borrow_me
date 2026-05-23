@@ -79,13 +79,15 @@ k6/JVM/OS 정보, `BASE_URL`, 실행 명령, dataset 전제 조건과 가능한 
 남깁니다. 새 wrapper는 artifact directory를 만들기 전의 git clean 상태를 `git_clean_before_artifact`로
 별도 보존하고, summary export에 p99가 남도록 `--summary-trend-stats`를 지정합니다.
 
-이 artifact가 없으면 기존 README 수치는 계속 `원본 README 기록 기준`으로만 설명합니다.
+이 artifact가 없으면 기존 README 수치는 계속 `원본 README 기록 기준`으로만 설명합니다. 원본 README의
+상품 목록 After p95 `23ms`는 현재 measured claim이나 현재 raw artifact가 아니며, 2026-05-23 clean
+repeat3 p95 `358.1088ms`와 별도 증거 범주입니다.
 
 현재 보존된 local snapshot:
 
 | 시나리오 | raw artifact | 해석 |
 | --- | --- | --- |
-| product-listing clean repeat3 | `docs/evidence/k6/20260523T004642Z-product-listing/` | clean commit `01c255a9f1863ef8f0b80854cc159a70eee036eb` 기준 current remeasurement snapshot. p95 358.1ms는 원본 README After p95 23ms와 별도 |
+| product-listing clean repeat3 | `docs/evidence/k6/20260523T004642Z-product-listing/` | clean commit `01c255a9f1863ef8f0b80854cc159a70eee036eb` 기준 current local k6 snapshot. p95 358.1088ms는 원본 README After p95 23ms와 별도 |
 | product-listing | `docs/evidence/k6/20260522T070732Z-product-listing/` | 해당 실행 시점의 worktree와 fixture 기준 단일 local snapshot |
 | search | `docs/evidence/k6/20260522T073727Z-search/` | recent search upsert 보강 후 해당 실행 시점의 worktree와 fixture 기준 단일 local snapshot |
 | concurrent-reserve | `docs/evidence/k6/20260522T074050Z-concurrent-reserve/` | 재고 50개 / 100 VU 정합성 단일 local snapshot |

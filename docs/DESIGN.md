@@ -17,7 +17,9 @@ BorrowMe는 11인 해커톤 팀 프로젝트에서 시작한 물건 대여 REST 
 ## 상품 목록 조회
 
 Before 원본 코드는 repository에 보존되어 있지 않습니다. 현재 문서는 원본 README 기록의 p95/처리량/쿼리
-수 변화를 재사용하고, 자동 검증은 `ProductQueryTest`의 query-count guard에 둡니다.
+수 변화를 historical original record로 재사용하고, 자동 검증은 `ProductQueryTest`의 query-count guard에 둡니다.
+현재 raw artifact가 있는 상품 목록 수치는 2026-05-23 clean repeat3 local k6 snapshot p95 `358.1088ms`로
+별도 분리합니다.
 
 ```text
 Product 목록 조회
@@ -45,4 +47,5 @@ POST /api/products/{productId}/reserve
 
 - 상품 검색, 해시태그 검색, 운동 추천 exercise hashtag 조회, bulk follow lookup, 인증 상품 목록 follow-aware 응답, ranking data path query-count는 자동 guard를 추가했습니다. ranking HTTP 렌더링 성능은 아직 benchmark로 주장하지 않습니다.
 - Flyway는 현재 schema baseline validation으로만 설명하고, 기존 production migration 이력을 복원했다고 주장하지 않습니다.
-- 원본 k6 raw artifact가 없는 p95/처리량 수치는 원본 README 기록 기준으로만 설명합니다.
+- 원본 k6 raw artifact가 없는 p95/처리량 수치는 원본 README 기록 기준으로만 설명합니다. clean repeat3
+  p95 `358.1088ms`를 원본 README After p95 `23ms`의 재현 또는 대체 수치로 말하지 않습니다.
