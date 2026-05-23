@@ -1,0 +1,29 @@
+date_utc=20260523T004642Z
+measurement_label=clean-main-product-listing-repeat3
+scenario=product-listing
+script=k6/test-product-listing.js
+base_url=http://localhost:5001
+command=BASE_URL=http://localhost:5001 k6 run k6/test-product-listing.js --summary-export docs/evidence/k6/20260523T004642Z-product-listing/summary.json
+git_commit=01c255a9f1863ef8f0b80854cc159a70eee036eb
+git_clean_before_artifact=true
+git_status_before_artifact=(clean)
+git_status_porcelain<<EOF
+?? docs/evidence/k6/20260523T004642Z-product-listing/
+EOF
+k6_version=k6 v1.5.0 (commit/devel, go1.25.5, darwin/arm64)
+java_version<<EOF
+openjdk version "23.0.2" 2025-01-21
+OpenJDK Runtime Environment (build 23.0.2+7-58)
+OpenJDK 64-Bit Server VM (build 23.0.2+7-58, mixed mode, sharing)
+EOF
+os<<EOF
+Darwin seongjinhyeog-ui-MacBookPro.local 25.3.0 Darwin Kernel Version 25.3.0: Wed Jan 28 20:54:55 PST 2026; root:xnu-12377.91.3~2/RELEASE_ARM64_T8132 arm64
+ProductName:		macOS
+ProductVersion:		26.3.1
+ProductVersionExtra:	(a)
+BuildVersion:		25D771280a
+EOF
+dataset=Requires k6/setup-data.sql seeded into the local MySQL shop database.
+setup_data_sha256=c54c79ec16944606d6e46ceb41f4e638815c4384f39d5f8e8e5d74448f12440a
+notes=git_status_porcelain includes this artifact directory because the wrapper creates it before writing metadata; git_clean_before_artifact records the pre-run clean state.
+redaction=summary.json setup_data JWT was redacted before commit; k6 metrics and root_group are unchanged.

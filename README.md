@@ -26,7 +26,8 @@ BorrowMe는 **가톨릭대학교 GGUM 해커톤에서 시작한 11인 팀 프로
 | 상태 | 항목 | 근거 |
 | --- | --- | --- |
 | 원본 측정 기록 | 상품 목록 p95 1,010ms -> 23ms, 처리량 30 req/s -> 253 req/s | 원본 README 기록 기준, raw artifact 없음 |
-| 현재 로컬 재실행 snapshot | 상품 목록 product-listing p95 50.5ms, HTTP 실패율 0.00%, checks 20,985 / 20,985 성공 | `docs/evidence/k6/20260522T070732Z-product-listing/` |
+| 현재 로컬 재실행 snapshot | 상품 목록 product-listing clean repeat3 p50 121.6ms, p95 358.1ms, p99 557.66ms, HTTP 실패율 0.00%, checks 10,683 / 10,683 성공 | `docs/evidence/k6/20260523T004642Z-product-listing/` |
+| 이전 로컬 재실행 snapshot | 상품 목록 product-listing p95 50.5ms, HTTP 실패율 0.00%, checks 20,985 / 20,985 성공 | `docs/evidence/k6/20260522T070732Z-product-listing/` |
 | 현재 로컬 재실행 snapshot | 검색 search p95 133.03ms, p99 182.01ms, HTTP 실패율 0.00%, checks 10,976 / 10,976 성공 | `docs/evidence/k6/20260522T073727Z-search/` |
 | 현재 로컬 재실행 snapshot | 동시 예약 concurrent-reserve 성공 50건 / 재고 부족 실패 50건 / 최종 재고 0 | `docs/evidence/k6/20260522T074050Z-concurrent-reserve/` |
 | 자동 회귀 검증 | 상품 목록 원본 쿼리 기록 201회 -> 3회, 현재 상품 목록/검색/단건 조회/recent search SQL 회귀 guard와 현재 query shape EXPLAIN 확인 | 원본 README 기록 + `ProductQueryTest` query-count/concurrency/EXPLAIN guard |
@@ -125,18 +126,20 @@ BASE_URL=http://localhost:5000 k6 run k6/test-concurrent-reserve.js
 
 ### 현재 로컬 재실행 snapshot
 
-2026-05-22에 해당 실행 시점의 worktree와 `k6/setup-data.sql` fixture로 상품 목록 `product-listing`, 검색 `search`,
+2026-05-23에 `main`의 clean commit 기준으로 상품 목록 `product-listing` clean repeat3 snapshot을 추가했습니다.
+2026-05-22에는 해당 실행 시점의 worktree와 `k6/setup-data.sql` fixture로 상품 목록 `product-listing`, 검색 `search`,
 동시 예약 `concurrent-reserve` 시나리오를 재실행했고, raw artifact를 보존했습니다.
 
 | 시나리오 | 조건 | 핵심 결과 | raw artifact |
 | --- | --- | --- | --- |
-| product-listing | 30 VU, 30초 | p95 50.5ms, HTTP 실패율 0.00%, checks 20,985 / 20,985 성공 | `docs/evidence/k6/20260522T070732Z-product-listing/` |
+| product-listing clean repeat3 | 30 VU, 30초, local profile app on `localhost:5001`, throwaway Docker MySQL `shop` on host port 3307 | p50 121.6ms, p95 358.1ms, p99 557.66ms, HTTP 실패율 0.00%, checks 10,683 / 10,683 성공, query count는 k6 artifact에 없음 | `docs/evidence/k6/20260523T004642Z-product-listing/` |
+| product-listing previous snapshot | 30 VU, 30초 | p95 50.5ms, HTTP 실패율 0.00%, checks 20,985 / 20,985 성공 | `docs/evidence/k6/20260522T070732Z-product-listing/` |
 | search | 30 VU, 30초 | p95 133.03ms, p99 182.01ms, HTTP 실패율 0.00%, checks 10,976 / 10,976 성공 | `docs/evidence/k6/20260522T073727Z-search/` |
 | concurrent-reserve | 100 VU, 재고 50개 | 예약 성공 50건, 재고 부족 실패 50건, 최종 재고 0, 예상 밖 오류 0건 | `docs/evidence/k6/20260522T074050Z-concurrent-reserve/` |
 
 이 snapshot은 해당 실행 시점의 worktree가 각 k6 threshold를 통과한다는 근거입니다. 원본 README의 Before/After p95
 23ms나 검색 p95 72ms를 같은 조건으로 재현했다는 뜻은 아니며, 운영 성능 claim으로 확장하지 않습니다.
-artifact metadata에는 당시 `git status`가 포함되어 있으며, clean commit 기준 반복 측정은 추가 측정 예정입니다.
+2026-05-23 product-listing clean repeat3 metadata에는 실행 전 git clean 상태와 실행 commit을 별도로 보존했습니다.
 
 예약 race condition은 `@Lock(PESSIMISTIC_WRITE)`와 `SELECT FOR UPDATE`로 행 레벨 잠금을 적용했고, Hibernate L1 캐시가 잠금을 우회하지 않도록 `entityManager.detach()`를 함께 사용했습니다.
 검색 recent search는 `(user_id, keyword)` unique constraint와 MySQL upsert로 같은 사용자/키워드 동시 요청이 중복 row를 만들지 않도록 보강했습니다.
